@@ -67,7 +67,7 @@ def file_searching_worker(regex: str, input: queue.Queue, output: queue.Queue) -
                         output.put('{}:{}{}{}\n\t{}'.format(name,
                             bcolors.OKGREEN, v[0], bcolors.ENDC,
                             insert_colour(v[1], regex)))
-            except UnicodeDecodeError, OSError, FileNotFoundError:
+            except (UnicodeDecodeError, OSError, FileNotFoundError):
                pass
 
 
