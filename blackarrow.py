@@ -16,30 +16,28 @@ def main():
         legacy(args)
     else:
         ignore_re = re.compile('a^') 
-        if args.ignore != []:
+        if args.ignore:
             ignore_re = re.compile('|'.join(args.ignore))
         input = queue.Queue()
         output = queue.Queue()
 
-        indexer = threading.Thread(target=index_worker,
+        indexer = threading.Thread(name='indexer',
+                                   target=index_worker,
                                    args=(args.directories,
                                          ignore_re,
                                          args.workers,
                                          input, output))
         indexer.start()
-        indexer.join()
-        workers = []
         for i in range(args.workers):
-            t = threading.Thread(target=file_searching_worker,
+            t = threading.Thread(name='worker-{}'.format(i + 1),
+                                 target=file_searching_worker,
                                  args=(re.compile(args.regex),
                                        input, output))
-            workers.append(t)
             t.start()
-        printer = threading.Thread(target=print_worker,
+        printer = threading.Thread(name='printer',
+                                   target=print_worker,
                                    args=(args.workers, output))
         printer.start()
-        printer.join()
-        [_.join() for _ in workers]
 
 
 def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Queue, output: queue.Queue) -> None:
@@ -57,10 +55,11 @@ def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Qu
 
 
 def file_searching_worker(regex: str, input: queue.Queue, output: queue.Queue) -> None:
+    line_count = 0
     while True:
         name = input.get()
         if name == 'EXIT':
-            output.put('EXIT')
+            output.put(('EXIT', line_count))
             break
         with open(name, 'r') as ofile:
             flag = []
@@ -68,7 +67,8 @@ def file_searching_worker(regex: str, input: queue.Queue, output: queue.Queue) -
                 for i, line in enumerate(ofile.readlines()):
                     if regex.search(line):
                         flag.append((i, line.split('\n')[0]))
-                if flag != []:
+                line_count += i + 1
+                if flag:
                     for value in sorted(flag, key=lambda tup:
                             regex.search(tup[1]).group(0)):
                         output.put('{}:{}{}{}\n\t{}'.format(name,
@@ -82,10 +82,12 @@ def print_worker(worker_count: int, output: queue.Queue) -> None:
     file_count = 0
     found_count = 0
     exit_count = 0
+    line_count = 0
     while True:
         statement = output.get()
-        if statement == 'EXIT':
+        if isinstance(statement, tuple):
             exit_count += 1
+            line_count += statement[1]
             if exit_count == worker_count:
                 break
         elif isinstance(statement, str):
@@ -96,7 +98,8 @@ def print_worker(worker_count: int, output: queue.Queue) -> None:
 
     print(('---------------\n'
            'Files Searched: {}\n'
-           'Files Matched: {}').format(file_count, found_count))
+           'Files Matched: {}\n'
+           'Lines Searched: {}').format(file_count, found_count, line_count))
 
 
 def insert_colour(str_to_add: str, regex: str) -> str:
@@ -111,6 +114,7 @@ def legacy(args: argparse.Namespace) -> None:
 
     file_counter = 0
     found_counter = 0
+    line_counter = 0
     for dir in args.directories:
         for dir, dirs, files in os.walk(dir):
             for question_file in files:
@@ -123,7 +127,8 @@ def legacy(args: argparse.Namespace) -> None:
                             for i, line in enumerate(ofile.readlines()):
                                 if regex.search(line):
                                     flag.append((i, line.split('\n')[0]))
-                            if flag != []:
+                            line_counter += i + 1
+                            if flag:
                                 found_counter += 1
                                 for value in sorted(flag, key=lambda tup:
                                         regex.search(tup[1]).group(0)):
@@ -134,7 +139,8 @@ def legacy(args: argparse.Namespace) -> None:
                             pass
     print(('---------------\n'
            'Files Searched: {}\n'
-           'Files Matched: {}').format(file_counter, found_counter))
+           'Files Matched: {}\n'
+           'Lines Searched: {}').format(file_counter, found_counter, line_counter))
 
 
 def get_args() -> argparse.Namespace:
