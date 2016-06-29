@@ -15,7 +15,7 @@ def main():
     if args.legacy:
         legacy(args)
     else:
-        ignore_re = re.compile('a^') 
+        ignore_re = re.compile('a^')
         if args.ignore:
             ignore_re = re.compile('|'.join(args.ignore))
         input = queue.Queue()
@@ -32,6 +32,7 @@ def main():
             t = threading.Thread(name='worker-{}'.format(i + 1),
                                  target=file_searching_worker,
                                  args=(re.compile(args.regex),
+                                       ignore_re,
                                        input, output))
             t.start()
         printer = threading.Thread(name='printer',
@@ -41,41 +42,39 @@ def main():
 
 
 def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Queue, output: queue.Queue) -> None:
-    file_count = 0
     for dir in directories:
-        for dir, _, files in os.walk(dir):
+        for subdir, _, files in os.walk(dir):
             for question_file in files:
-                filename = dir + '/' + question_file
-                if ignore_re.search(filename) is None:
-                    file_count += 1
-                    input.put(filename)
-    output.put(file_count)
+                input.put(subdir + '/' + question_file)  # faster than os.path.join
     for i in range(workers):
         input.put('EXIT')  # poison pill workers
 
 
-def file_searching_worker(regex: str, input: queue.Queue, output: queue.Queue) -> None:
+def file_searching_worker(regex: str, ignore_re: str, input: queue.Queue, output: queue.Queue) -> None:
     line_count = 0
+    file_count = 0
     while True:
         name = input.get()
         if name == 'EXIT':
-            output.put(('EXIT', line_count))
+            output.put(('EXIT', line_count, file_count))
             break
-        with open(name, 'r') as ofile:
-            flag = []
-            try:
-                for i, line in enumerate(ofile.readlines()):
-                    if regex.search(line):
-                        flag.append((i, line.split('\n')[0]))
-                line_count += i + 1
-                if flag:
-                    for value in sorted(flag, key=lambda tup:
-                            regex.search(tup[1]).group(0)):
-                        output.put('{}:{}{}{}\n\t{}'.format(name,
-                            bcolors.OKGREEN, value[0], bcolors.ENDC,
-                            insert_colour(value[1], regex)))
-            except (UnicodeDecodeError, OSError, FileNotFoundError):
-                pass
+        if ignore_re.search(name) is None:
+            file_count += 1
+            with open(name, 'r') as ofile:
+                flag = []
+                try:
+                    for i, line in enumerate(ofile.readlines()):
+                        if regex.search(line):
+                            flag.append((i, line.split('\n')[0]))
+                    line_count += i + 1
+                    if flag:
+                        for value in sorted(flag, key=lambda tup:
+                                regex.search(tup[1]).group(0)):
+                            output.put('{}:{}{}{}\n\t{}'.format(name,
+                                bcolors.OKGREEN, value[0], bcolors.ENDC,
+                                insert_colour(value[1], regex)))
+                except:
+                    pass
 
 
 def print_worker(worker_count: int, output: queue.Queue) -> None:
@@ -88,13 +87,12 @@ def print_worker(worker_count: int, output: queue.Queue) -> None:
         if isinstance(statement, tuple):
             exit_count += 1
             line_count += statement[1]
+            file_count += statement[2]
             if exit_count == worker_count:
                 break
         elif isinstance(statement, str):
             found_count += 1
             print(statement)
-        else:
-            file_count = statement
 
     print(('---------------\n'
            'Files Searched: {}\n'
@@ -135,7 +133,7 @@ def legacy(args: argparse.Namespace) -> None:
                                     print('{}:{}{}{}\n\t{}'.format(filename,
                                         bcolors.OKGREEN, value[0], bcolors.ENDC,
                                         insert_colour(value[1], args.regex)))
-                        except UnicodeDecodeError:
+                        except:
                             pass
     print(('---------------\n'
            'Files Searched: {}\n'
