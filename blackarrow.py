@@ -15,36 +15,42 @@ def main():
     if args.legacy:
         legacy(args)
     else:
-        ignore_re = None if args.ignore == [] else '|'.join(args.ignore)
+        ignore_re = re.compile('a^') 
+        if args.ignore != []:
+            ignore_re = re.compile('|'.join(args.ignore))
         input = queue.Queue()
         output = queue.Queue()
 
-        indexer = threading.Thread(target=index_worker, args=(args.directories, ignore_re, args.workers, input, output))
+        indexer = threading.Thread(target=index_worker,
+                                   args=(args.directories,
+                                         ignore_re,
+                                         args.workers,
+                                         input, output))
         indexer.start()
         indexer.join()
         workers = []
         for i in range(args.workers):
-            t = threading.Thread(target=file_searching_worker, args=(args.regex, input, output))
+            t = threading.Thread(target=file_searching_worker,
+                                 args=(re.compile(args.regex),
+                                       input, output))
             workers.append(t)
             t.start()
-        printer = threading.Thread(target=print_worker, args=(args.workers, output))
+        printer = threading.Thread(target=print_worker,
+                                   args=(args.workers, output))
         printer.start()
         printer.join()
-        [t.join() for t in workers]
+        [_.join() for _ in workers]
 
 
 def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Queue, output: queue.Queue) -> None:
     file_count = 0
     for dir in directories:
-        for dir, dirs, files in os.walk(dir):
-            # will short circuit
-            clean_files = [os.path.join(dir, f)
-                           for f in files
-                           if (ignore_re is None) or
-                               (re.search(ignore_re, os.path.join(dir, f)) is None)]
-            for name in clean_files:
-                file_count += 1
-                input.put(name)
+        for dir, _, files in os.walk(dir):
+            for question_file in files:
+                filename = dir + '/' + question_file
+                if ignore_re.search(filename) is None:
+                    file_count += 1
+                    input.put(filename)
     output.put(file_count)
     for i in range(workers):
         input.put('EXIT')  # poison pill workers
@@ -60,15 +66,16 @@ def file_searching_worker(regex: str, input: queue.Queue, output: queue.Queue) -
             flag = []
             try:
                 for i, line in enumerate(ofile.readlines()):
-                    if re.search(regex, line):
+                    if regex.search(line):
                         flag.append((i, line.split('\n')[0]))
                 if flag != []:
-                    for v in sorted(flag, key=lambda tup: re.search(regex, tup[1]).group(0)):
+                    for value in sorted(flag, key=lambda tup:
+                            regex.search(tup[1]).group(0)):
                         output.put('{}:{}{}{}\n\t{}'.format(name,
-                            bcolors.OKGREEN, v[0], bcolors.ENDC,
-                            insert_colour(v[1], regex)))
+                            bcolors.OKGREEN, value[0], bcolors.ENDC,
+                            insert_colour(value[1], regex)))
             except (UnicodeDecodeError, OSError, FileNotFoundError):
-               pass
+                pass
 
 
 def print_worker(worker_count: int, output: queue.Queue) -> None:
@@ -97,33 +104,34 @@ def insert_colour(str_to_add: str, regex: str) -> str:
 
 
 def legacy(args: argparse.Namespace) -> None:
-    ignore_re = None if args.ignore == [] else '|'.join(args.ignore)
+    ignore_re = re.compile('a^')
+    if args.ignore != []:
+        ignore_re = re.compile('|'.join(args.ignore))
+    regex = re.compile(args.regex)
 
     file_counter = 0
     found_counter = 0
     for dir in args.directories:
         for dir, dirs, files in os.walk(dir):
-            # will short circuit
-            clean_files = [os.path.join(dir, f)
-                           for f in files
-                           if (ignore_re is None) or
-                               (re.search(ignore_re, os.path.join(dir, f)) is None)]
-            for name in clean_files:
-                file_counter += 1
-                with open(name, 'r') as ofile:
-                    flag = []
-                    try:
-                        for i, line in enumerate(ofile.readlines()):
-                            if re.search(args.regex, line):
-                                flag.append((i, line.split('\n')[0]))
-                        if flag != []:
-                            found_counter += 1
-                            for v in sorted(flag, key=lambda tup: re.search(args.regex, tup[1]).group(0)):
-                                print('{}:{}{}{}\n\t{}'.format(name,
-                                    bcolors.OKGREEN, v[0], bcolors.ENDC,
-                                    insert_colour(v[1], args.regex)))
-                    except UnicodeDecodeError:
-                       pass
+            for question_file in files:
+                filename = dir + '/' + question_file
+                if ignore_re.search(filename) is None:
+                    file_counter += 1
+                    with open(filename, 'r') as ofile:
+                        flag = []
+                        try:
+                            for i, line in enumerate(ofile.readlines()):
+                                if regex.search(line):
+                                    flag.append((i, line.split('\n')[0]))
+                            if flag != []:
+                                found_counter += 1
+                                for value in sorted(flag, key=lambda tup:
+                                        regex.search(tup[1]).group(0)):
+                                    print('{}:{}{}{}\n\t{}'.format(filename,
+                                        bcolors.OKGREEN, value[0], bcolors.ENDC,
+                                        insert_colour(value[1], args.regex)))
+                        except UnicodeDecodeError:
+                            pass
     print(('---------------\n'
            'Files Searched: {}\n'
            'Files Matched: {}').format(file_counter, found_counter))
