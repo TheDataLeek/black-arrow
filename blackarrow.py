@@ -5,12 +5,14 @@ import argparse
 import sys
 import os
 import re
-import threading
-import queue
+import multiprocessing as mp
+import time
 
 
 def main():
     args = get_args()
+
+    start_time = time.time()
 
     if args.legacy:
         legacy(args)
@@ -18,30 +20,30 @@ def main():
         ignore_re = re.compile('a^')
         if args.ignore:
             ignore_re = re.compile('|'.join(args.ignore))
-        input = queue.Queue()
-        output = queue.Queue()
+        input = mp.Queue()
+        output = mp.Queue()
 
-        indexer = threading.Thread(name='indexer',
-                                   target=index_worker,
-                                   args=(args.directories,
-                                         ignore_re,
-                                         args.workers,
-                                         input, output))
+        indexer = mp.Process(name='indexer',
+                             target=index_worker,
+                             args=(args.directories,
+                                   ignore_re,
+                                   args.workers,
+                                   input, output))
         indexer.start()
         for i in range(args.workers):
-            t = threading.Thread(name='worker-{}'.format(i + 1),
-                                 target=file_searching_worker,
-                                 args=(re.compile(args.regex),
-                                       ignore_re,
-                                       input, output))
+            t = mp.Process(name='worker-{}'.format(i + 1),
+                           target=file_searching_worker,
+                           args=(re.compile(args.regex),
+                                 ignore_re,
+                                 input, output))
             t.start()
-        printer = threading.Thread(name='printer',
-                                   target=print_worker,
-                                   args=(args.workers, output))
+        printer = mp.Process(name='printer',
+                             target=print_worker,
+                             args=(start_time, args.workers, output))
         printer.start()
 
 
-def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Queue, output: queue.Queue) -> None:
+def index_worker(directories: str, ignore_re: str, workers: int, input: mp.Queue, output: mp.Queue) -> None:
     for dir in directories:
         for subdir, _, files in os.walk(dir):
             for question_file in files:
@@ -50,13 +52,14 @@ def index_worker(directories: str, ignore_re: str, workers: int, input: queue.Qu
         input.put('EXIT')  # poison pill workers
 
 
-def file_searching_worker(regex: str, ignore_re: str, input: queue.Queue, output: queue.Queue) -> None:
+def file_searching_worker(regex: str, ignore_re: str, input: mp.Queue, output: mp.Queue) -> None:
     line_count = 0
     file_count = 0
+    found_count = 0
     while True:
         name = input.get()
         if name == 'EXIT':
-            output.put(('EXIT', line_count, file_count))
+            output.put(('EXIT', line_count, file_count, found_count))
             break
         if ignore_re.search(name) is None:
             file_count += 1
@@ -68,6 +71,7 @@ def file_searching_worker(regex: str, ignore_re: str, input: queue.Queue, output
                             flag.append((i, line.split('\n')[0]))
                     line_count += i + 1
                     if flag:
+                        found_count += 1
                         for value in sorted(flag, key=lambda tup:
                                 regex.search(tup[1]).group(0)):
                             output.put('{}:{}{}{}\n\t{}'.format(name,
@@ -77,7 +81,7 @@ def file_searching_worker(regex: str, ignore_re: str, input: queue.Queue, output
                     pass
 
 
-def print_worker(worker_count: int, output: queue.Queue) -> None:
+def print_worker(start_time: float, worker_count: int, output: mp.Queue) -> None:
     file_count = 0
     found_count = 0
     exit_count = 0
@@ -88,16 +92,17 @@ def print_worker(worker_count: int, output: queue.Queue) -> None:
             exit_count += 1
             line_count += statement[1]
             file_count += statement[2]
+            found_count += statement[3]
             if exit_count == worker_count:
                 break
         elif isinstance(statement, str):
-            found_count += 1
             print(statement)
 
     print(('---------------\n'
            'Files Searched: {}\n'
            'Files Matched: {}\n'
-           'Lines Searched: {}').format(file_count, found_count, line_count))
+           'Lines Searched: {}\n'
+           'Duration: {}').format(file_count, found_count, line_count, time.time() - start_time))
 
 
 def insert_colour(str_to_add: str, regex: str) -> str:
