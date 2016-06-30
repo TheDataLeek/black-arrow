@@ -58,6 +58,7 @@ def file_searching_worker(regex: str, ignore_re: str, input: mp.Queue, output: m
     rows, columns = os.popen('stty size', 'r').read().split()
     maxwidth = int(3 * int(columns) / 4)
     while True:
+        # we want to block this thread until we get input
         name = input.get()
         if name == 'EXIT':
             output.put(('EXIT', line_count, file_count, found_count))
