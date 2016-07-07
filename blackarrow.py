@@ -17,27 +17,30 @@ def main():
     ignore_re = re.compile('a^')
     if args.ignore:
         ignore_re = re.compile('|'.join(args.ignore))
+    filename_re = re.compile('.*')
+    if args.filename:
+        filename_re = re.compile('|'.join(args.filename))
     input = mp.Queue()
     output = mp.Queue()
 
-    indexer = mp.Process(name='indexer',
-                         target=index_worker,
-                         args=(args.directories,
-                               ignore_re,
-                               args.workers,
-                               input, output))
-    indexer.start()
+    mp.Process(name='indexer',
+               target=index_worker,
+               args=(args.directories,
+                     ignore_re,
+                     args.workers,
+                     input, output)).start()
+
     for i in range(args.workers):
-        t = mp.Process(name='worker-{}'.format(i + 1),
-                       target=file_searching_worker,
-                       args=(re.compile(args.regex),
-                             ignore_re,
-                             input, output))
-        t.start()
+        mp.Process(name='worker-{}'.format(i + 1),
+                   target=file_searching_worker,
+                   args=(re.compile(args.regex),
+                         ignore_re, filename_re,
+                         input, output)).start()
     printer = mp.Process(name='printer',
                          target=print_worker,
                          args=(start_time, args.workers, output))
     printer.start()
+    printer.join()    # Wait main thread until printer is done
 
 
 def index_worker(directories: str, ignore_re: str, workers: int, input: mp.Queue, output: mp.Queue) -> None:
@@ -50,7 +53,7 @@ def index_worker(directories: str, ignore_re: str, workers: int, input: mp.Queue
         input.put('EXIT')  # poison pill workers
 
 
-def file_searching_worker(regex: str, ignore_re: str, input: mp.Queue, output: mp.Queue) -> None:
+def file_searching_worker(regex: str, ignore_re: str, filename_re: str, input: mp.Queue, output: mp.Queue) -> None:
     line_count = 0
     file_count = 0
     found_count = 0
@@ -63,7 +66,7 @@ def file_searching_worker(regex: str, ignore_re: str, input: mp.Queue, output: m
         if name == 'EXIT':
             output.put(('EXIT', line_count, file_count, found_count))
             break
-        if ignore_re.search(name) is None:
+        if ignore_re.search(name) is None and filename_re.search(name) is not None:
             file_count += 1
             try:
                 with open(name, 'r') as ofile:
@@ -123,6 +126,8 @@ def get_args() -> argparse.Namespace:
                         help='Search term (regular expression)')
     parser.add_argument('-i', '--ignore', type=str, default=[], nargs='+',
                         help='Things to ignore (regular expressions)')
+    parser.add_argument('-f', '--filename', type=str, default=[], nargs='+',
+                        help='Filename search term(s)')
     parser.add_argument('-w', '--workers', type=int, default=2,
                         help=('Number of workers to use (default 2)'))
     args = parser.parse_args()
