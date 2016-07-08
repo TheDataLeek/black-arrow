@@ -148,10 +148,13 @@ def insert_colour(str_to_add: str, regex: RETYPE) -> str:
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    regex_group = parser.add_mutually_exclusive_group(required=True)
+    regex_group.add_argument('regex_positional', metavar='R', type=str, default=None, nargs='?',
+                             help='Search term (regular expression)')
+    regex_group.add_argument('-r', '--regex', type=str, default=None,
+                             help='Search term (regular expression)')
     parser.add_argument('-d', '--directories', type=str, default=['.'], nargs='+',
                         help='Director(y|ies) to run against')
-    parser.add_argument('regex', metavar='R', type=str, default=None, nargs=1,
-                        help='Search term (regular expression)')
     parser.add_argument('-i', '--ignore', type=str, default=[], nargs='+',
                         help='Things to ignore (regular expressions)')
     parser.add_argument('-f', '--filename', type=str, default=[], nargs='+',
@@ -163,7 +166,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('-e', '--edit', action='store_true', default=False,
                         help=('Edit the files?'))
     args = parser.parse_args()
-    args.regex = args.regex[0]
+    args.regex = args.regex if args.regex_positional is None else args.regex_positional[0]
     return args
 
 
