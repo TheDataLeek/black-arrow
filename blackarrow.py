@@ -23,22 +23,24 @@ def main():
     input = mp.Queue()
     output = mp.Queue()
 
-    mp.Process(name='indexer',
-               target=index_worker,
-               args=(args.directories,
-                     ignore_re,
-                     args.workers,
-                     input, output)).start()
+    indexer = mp.Process(name='indexer',
+                         target=index_worker,
+                         args=(args.directories,
+                               ignore_re,
+                               args.workers,
+                               input, output))
+    indexer.start()
 
     for i in range(args.workers):
-        mp.Process(name='worker-{}'.format(i + 1),
-                   target=file_searching_worker,
-                   args=(re.compile(args.regex),
-                         ignore_re, filename_re,
-                         input, output)).start()
+        worker = mp.Process(name='worker-{}'.format(i + 1),
+                            target=file_searching_worker,
+                            args=(re.compile(args.regex),
+                                  ignore_re, filename_re,
+                                  input, output))
+        worker.start()
     printer = mp.Process(name='printer',
                          target=print_worker,
-                         args=(start_time, args.workers, output))
+                         args=(start_time, args.workers, output, args.pipe))
     printer.start()
     printer.join()    # Wait main thread until printer is done
 
@@ -83,35 +85,39 @@ def file_searching_worker(regex: str, ignore_re: str, filename_re: str, input: m
                     if flag:
                         found_count += 1
                         for value in flag:
-                            output.put('{}:{}{}{}\n\t{}'.format(name,
-                                bcolors.OKGREEN, value[0], bcolors.ENDC,
+                            output.put((name, bcolors.OKGREEN,
+                                value[0], bcolors.ENDC,
                                 insert_colour(value[1], regex)))
             except:
                 pass
 
 
-def print_worker(start_time: float, worker_count: int, output: mp.Queue) -> None:
+def print_worker(start_time: float, worker_count: int, output: mp.Queue, pipemode: bool) -> None:
     file_count = 0
     found_count = 0
     exit_count = 0
     line_count = 0
     while True:
         statement = output.get()
-        if isinstance(statement, tuple):
+        if not isinstance(statement[1], str):
             exit_count += 1
             line_count += statement[1]
             file_count += statement[2]
             found_count += statement[3]
             if exit_count == worker_count:
                 break
-        elif isinstance(statement, str):
-            print(statement)
+        elif isinstance(statement[1], str):
+            if pipemode:
+                print(statement[0])
+            else:
+                print('{}:{}{}{}\n\t{}'.format(*statement))
 
-    print(('---------------\n'
-           'Files Searched: {}\n'
-           'Files Matched: {}\n'
-           'Lines Searched: {}\n'
-           'Duration: {}').format(file_count, found_count, line_count, time.time() - start_time))
+    if not pipemode:
+        print(('---------------\n'
+               'Files Searched: {}\n'
+               'Files Matched: {}\n'
+               'Lines Searched: {}\n'
+               'Duration: {}').format(file_count, found_count, line_count, time.time() - start_time))
 
 
 def insert_colour(str_to_add: str, regex: str) -> str:
@@ -130,6 +136,8 @@ def get_args() -> argparse.Namespace:
                         help='Filename search term(s)')
     parser.add_argument('-w', '--workers', type=int, default=2,
                         help=('Number of workers to use (default 2)'))
+    parser.add_argument('-p', '--pipe', action='store_true', default=False,
+                        help=('Run in "pipe" mode with brief output'))
     args = parser.parse_args()
     if args.regex is None:
         print('Must supply a search string!')
