@@ -7,9 +7,11 @@ import os
 import re
 import multiprocessing as mp
 import time
+import subprocess
 
 
 RETYPE = type(re.compile('a'))
+EDITOR = os.environ.get('EDITOR', 'vim')
 
 
 def main():
@@ -43,7 +45,8 @@ def main():
         worker.start()
     printer = mp.Process(name='printer',
                          target=print_worker,
-                         args=(start_time, args.workers, output, args.pipe))
+                         args=(start_time, args.workers,
+                               output, args.pipe, args.edit))
     printer.start()
     printer.join()    # Wait main thread until printer is done
 
@@ -95,11 +98,12 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
                 pass
 
 
-def print_worker(start_time: float, worker_count: int, output: mp.Queue, pipemode: bool) -> None:
+def print_worker(start_time: float, worker_count: int, output: mp.Queue, pipemode: bool, editmode: bool) -> None:
     file_count = 0
     found_count = 0
     exit_count = 0
     line_count = 0
+    file_list = []
     while True:
         statement = output.get()
         if not isinstance(statement[1], str):
@@ -115,12 +119,27 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue, pipemod
             else:
                 print('{}:{}{}{}\n\t{}'.format(*statement))
 
+            if editmode:
+                file_list.append((statement[2], statement[0]))
+
     if not pipemode:
         print(('---------------\n'
                'Files Searched: {}\n'
                'Files Matched: {}\n'
                'Lines Searched: {}\n'
                'Duration: {}').format(file_count, found_count, line_count, time.time() - start_time))
+
+    if file_list:
+        files_to_edit = ['+{} {}'.format(num, name) for num, name in file_list]
+        call_args = [_ for _ in files_to_edit[0].split(' ')]
+        orientation = 0
+        for f in files_to_edit[1:]:
+            call_args.append('+"{} {}"'.format('sp' if orientation else 'vsp', f))
+            orientation ^= 1
+        if len(call_args) > 10:
+            print(bcolors.FAIL + 'Cowardly only accepting the first 10 files for editing' + bcolors.ENDC)
+        call_string = '{} {}'.format(EDITOR, ' '.join(call_args[:10]))
+        subprocess.call(call_string, shell=True)
 
 
 def insert_colour(str_to_add: str, regex: RETYPE) -> str:
@@ -141,6 +160,8 @@ def get_args() -> argparse.Namespace:
                         help=('Number of workers to use (default 2)'))
     parser.add_argument('-p', '--pipe', action='store_true', default=False,
                         help=('Run in "pipe" mode with brief output'))
+    parser.add_argument('-e', '--edit', action='store_true', default=False,
+                        help=('Edit the files?'))
     args = parser.parse_args()
     if args.regex is None:
         print('Must supply a search string!')
