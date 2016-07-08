@@ -150,7 +150,7 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--directories', type=str, default=['.'], nargs='+',
                         help='Director(y|ies) to run against')
-    parser.add_argument('-r', '--regex', type=str, default=None,
+    parser.add_argument('regex', metavar='R', type=str, default=None, nargs=1,
                         help='Search term (regular expression)')
     parser.add_argument('-i', '--ignore', type=str, default=[], nargs='+',
                         help='Things to ignore (regular expressions)')
@@ -163,9 +163,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('-e', '--edit', action='store_true', default=False,
                         help=('Edit the files?'))
     args = parser.parse_args()
-    if args.regex is None:
-        print('Must supply a search string!')
-        sys.exit(0)
+    args.regex = args.regex[0]
     return args
 
 
