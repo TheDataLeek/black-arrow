@@ -9,6 +9,9 @@ import multiprocessing as mp
 import time
 
 
+RETYPE = type(re.compile('a'))
+
+
 def main():
     args = get_args()
 
@@ -45,7 +48,7 @@ def main():
     printer.join()    # Wait main thread until printer is done
 
 
-def index_worker(directories: str, ignore_re: str, workers: int, input: mp.Queue, output: mp.Queue) -> None:
+def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, _, files in os.walk(dir):
             for question_file in files:
@@ -55,7 +58,7 @@ def index_worker(directories: str, ignore_re: str, workers: int, input: mp.Queue
         input.put('EXIT')  # poison pill workers
 
 
-def file_searching_worker(regex: str, ignore_re: str, filename_re: str, input: mp.Queue, output: mp.Queue) -> None:
+def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE, input: mp.Queue, output: mp.Queue) -> None:
     line_count = 0
     file_count = 0
     found_count = 0
@@ -120,7 +123,7 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue, pipemod
                'Duration: {}').format(file_count, found_count, line_count, time.time() - start_time))
 
 
-def insert_colour(str_to_add: str, regex: str) -> str:
+def insert_colour(str_to_add: str, regex: RETYPE) -> str:
     return re.sub('^[ \t]+', '', re.sub(regex, '{}\g<0>{}'.format(bcolors.WARNING, bcolors.ENDC), str_to_add))
 
 
