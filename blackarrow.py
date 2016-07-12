@@ -197,7 +197,7 @@ def get_args() -> argparse.Namespace:
                         help='Things to ignore (regular expressions)')
     parser.add_argument('-f', '--filename', type=str, default=[], nargs='+',
                         help='Filename search term(s)')
-    parser.add_argument('-w', '--workers', type=int, default=2,
+    parser.add_argument('-w', '--workers', type=int, default=4,
                         help=('Number of workers to use (default 2)'))
     parser.add_argument('-p', '--pipe', action='store_true', default=False,
                         help=('Run in "pipe" mode with brief output'))
