@@ -8,7 +8,7 @@ import re
 import multiprocessing as mp
 import time
 import subprocess
-import curses
+import fabulous.color as color
 
 
 RETYPE = type(re.compile('a'))
@@ -47,8 +47,7 @@ def main():
     printer = mp.Process(name='printer',
                          target=print_worker,
                          args=(start_time, args.workers,
-                               output, args.pipe, args.edit,
-                               args.interactive))
+                               output, args.pipe, args.edit))
     printer.start()
     printer.join()    # Wait main thread until printer is done
 
@@ -93,15 +92,13 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
                     if flag:
                         found_count += 1
                         for value in flag:
-                            output.put((name, bcolors.OKGREEN,
-                                value[0], bcolors.ENDC,
-                                insert_colour(value[1], regex)))
+                            output.put((name, value[0],  value[1], regex))
             except:
                 pass
 
 
 def print_worker(start_time: float, worker_count: int, output: mp.Queue,
-                 pipemode: bool, editmode: bool, interactivemode: bool) -> None:
+                 pipemode: bool, editmode: bool) -> None:
     file_count = 0
     found_count = 0
     exit_count = 0
@@ -109,20 +106,22 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue,
     file_list = []
     while True:
         statement = output.get()
-        if not isinstance(statement[1], str):
+        if statement[0] == 'EXIT':
             exit_count += 1
             line_count += statement[1]
             file_count += statement[2]
             found_count += statement[3]
             if exit_count == worker_count:
                 break
-        elif isinstance(statement[1], str):
+        else:
             if pipemode:
-                print(statement[0])
+                print('{}	{}	{}'.format(statement[0], statement[1], statement[2]))
             else:
-                print('{}:{}{}{}\n\t{}'.format(*statement))
+                print('{}:{}\n\t{}'.format(statement[0],
+                    color.fg256('#00ff00', statement[1]),
+                    insert_colour(statement[2], statement[3])))
 
-                file_list.append((statement[2], statement[0]))
+                file_list.append((statement[1], statement[0]))
 
     if not pipemode:
         print(('---------------\n'
@@ -139,49 +138,13 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue,
             call_args.append('+"{} {}"'.format('sp' if orientation else 'vsp', f))
             orientation ^= 1
         if len(call_args) > 10:
-            print(bcolors.FAIL + 'Cowardly only accepting the first 10 files for editing' + bcolors.ENDC)
+            print(color.red('Cowardly only accepting the first 10 files for editing'))
         call_string = '{} {}'.format(EDITOR, ' '.join(call_args[:10]))
         subprocess.call(call_string, shell=True)
 
-    def interactive(stdscr):
-        begin_x = 20
-        begin_y = 7
-        height = int(2 * len(file_list))
-        width = 2 * max(file_list, key=lambda tup: len(str(tup)))[0]
-        win = curses.newwin(height, width, begin_y, begin_x)
-
-        pos = [0, 0]
-        curses.setsyx(*pos)
-        curses.curs_set(2)
-        try:
-            while True:
-                i = 0
-                stdscr.move(*pos)
-                for linenum, filename in file_list:
-                    stdscr.addstr(i, 0, filename, curses.A_NORMAL)
-                    stdscr.addstr(i + 1, 0, str(linenum), curses.A_NORMAL)
-                    i += 2
-                stdscr.move(*pos)
-                c = stdscr.getkey()
-                if c == 'q':
-                    break
-                elif c == 'KEY_UP':
-                    pos[0] = 0 if (pos[0] - 1) < 0 else pos[0] - 1
-                elif c == 'KEY_DOWN':
-                    pos[0] = height if (pos[0] + 1) > height else pos[0] + 1
-                elif c == 'KEY_LEFT':
-                    pos[1] = 0 if (pos[1] - 1) < 0 else pos[1] - 1
-                elif c == 'KEY_RIGHT':
-                    pos[1] = width if (pos[1] + 1) > width else pos[1] + 1
-        except KeyboardInterrupt:
-            pass
-
-    if interactivemode:
-        curses.wrapper(interactive)
-
 
 def insert_colour(str_to_add: str, regex: RETYPE) -> str:
-    return re.sub('^[ \t]+', '', re.sub(regex, '{}\g<0>{}'.format(bcolors.WARNING, bcolors.ENDC), str_to_add))
+    return re.sub('^[ \t]+', '', re.sub(regex, str(color.fg256('yellow', r'\g<0>')), str_to_add))
 
 
 def get_args() -> argparse.Namespace:
@@ -203,23 +166,9 @@ def get_args() -> argparse.Namespace:
                         help=('Run in "pipe" mode with brief output'))
     parser.add_argument('-e', '--edit', action='store_true', default=False,
                         help=('Edit the files?'))
-    parser.add_argument('-x', '--interactive', action='store_true', default=False,
-                        help=('Run in Interactive Mode?'))
     args = parser.parse_args()
     args.regex = args.regex_positional if args.regex is None else args.regex
     return args
-
-
-class bcolors:
-    """ http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python """
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 if __name__ == '__main__':
