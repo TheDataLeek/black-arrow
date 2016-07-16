@@ -18,7 +18,8 @@ EDITOR = os.environ.get('EDITOR', 'vim')
 
 def main():
     args = get_args()
-    start_search(args)
+    print_process = start_search(args)
+    print_process.join()    # Wait main thread until printer is done
 
 
 def start_search(args:argparse.Namespace):
@@ -53,7 +54,7 @@ def start_search(args:argparse.Namespace):
                          args=(start_time, args.workers,
                                output, args.pipe, args.edit))
     printer.start()
-    printer.join()    # Wait main thread until printer is done
+    return printer
 
 
 def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue) -> None:

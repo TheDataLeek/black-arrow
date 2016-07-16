@@ -19,9 +19,8 @@ class BlackArrow(object):
         actualstdout = sys.stdout
         sys.stdout = io.StringIO()
 
-        blackarrow.start_search(args)
-
         self.vim.command('vnew')
 
-        self.vim.input(sys.stdout.getvalue())
+        blackarrow.start_search(args)
 
+        self.vim.input(sys.stdout.getvalue())
