@@ -1,6 +1,7 @@
 import argparse
 import neovim
-from blackarrow import blackarrow
+from . import blackarrow
+
 
 @neovim.plugin
 class BlackArrow(object):
@@ -9,4 +10,4 @@ class BlackArrow(object):
 
     @neovim.command('BlackArrow', nargs='+')
     def search(self, args: str):
-        self.vim.command('echo "{}"'.format(blackarrow.get_args(args)))
+        self.vim.command('echo "{}"'.format(blackarrow.blackarrow.get_args(args)))
