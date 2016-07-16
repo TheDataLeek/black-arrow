@@ -24,6 +24,4 @@ class BlackArrow(object):
         # blackarrow.start_search(args)
         # self.vim.out_write(sys.stdout.getvalue())
 
-        self.vim.out_write('test string')
-
-        self.vim.current.buffer = 'test string 2'
+        self.vim.current.Buffer[:] = 'test string 28973245987'
