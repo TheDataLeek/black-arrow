@@ -36,6 +36,7 @@ def start_search(args:argparse.Namespace):
         filename_re = re.compile('|'.join(args.filename))
     input = mp.Queue()
     output = mp.Queue()
+    final_queue = mp.Queue()
 
     indexer = mp.Process(name='indexer',
                          target=index_worker,
@@ -55,9 +56,9 @@ def start_search(args:argparse.Namespace):
     printer = mp.Process(name='printer',
                          target=print_worker,
                          args=(start_time, args.workers,
-                               output, args.pipe, args.edit))
+                               output, final_queue, args.pipe, args.edit))
     printer.start()
-    return printer
+    return printer, final_queue
 
 
 def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue) -> None:
@@ -105,7 +106,7 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
                 pass
 
 
-def print_worker(start_time: float, worker_count: int, output: mp.Queue,
+def print_worker(start_time: float, worker_count: int, output: mp.Queue, final_queue: mp.Queue,
                  pipemode: bool, editmode: bool) -> None:
     file_count = 0
     found_count = 0
@@ -122,6 +123,7 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue,
             if exit_count == worker_count:
                 break
         else:
+            final_queue.put(statement[0], statement[1])
             if pipemode:
                 print('{}	{}	{}'.format(statement[0], statement[1], statement[2]))
             else:

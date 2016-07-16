@@ -19,14 +19,16 @@ class BlackArrow(object):
         args.pipe = False
         args.edit = False
 
-        actualstdout = sys.stdout
-        sys.stdout = io.StringIO()
-
         self.vim.command('vnew')
-        self.vim.command('set buftype=nofile') # make this non-editable
+        self.vim.command('vertical resize 30')
 
-        printer = blackarrow.start_search(args)
-        printer.join()
+        self.vim.command('echo "{}, {}"'.format(self.vim.options['netrw_list_hide'], self.vim.vars['netrw_list_hide']))
+        # self.vim.options['netrw_list_hide'] = '.*'
 
-        self.vim.current.line = sys.stdout.getvalue()
+        # actualstdout = sys.stdout
+        # sys.stdout = io.StringIO()
+        # printer = blackarrow.start_search(args)
+        # printer.join()
+
+        # self.vim.current.line = sys.stdout.getvalue()
 
