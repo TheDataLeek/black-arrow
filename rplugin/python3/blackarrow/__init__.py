@@ -21,6 +21,9 @@ class BlackArrow(object):
 
         self.vim.command('vnew')
 
-        blackarrow.start_search(args)
+        # blackarrow.start_search(args)
+        # self.vim.out_write(sys.stdout.getvalue())
 
-        self.vim.out_write(sys.stdout.getvalue())
+        self.vim.out_write('test string')
+
+        self.vim.current.buffer = 'test string 2'
