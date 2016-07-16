@@ -17,7 +17,10 @@ EDITOR = os.environ.get('EDITOR', 'vim')
 
 def main():
     args = get_args()
+    start_search(args)
 
+
+def start_search(args:argparse.Namespace):
     start_time = time.time()
 
     ignore_re = re.compile('a^')
