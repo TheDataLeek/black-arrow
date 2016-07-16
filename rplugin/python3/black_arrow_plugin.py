@@ -2,7 +2,7 @@
 
 import argparse
 import neovim
-from ... import blackarrow
+from .. import blackarrow
 
 @neovim.plugin
 class BlackArrow(object):
