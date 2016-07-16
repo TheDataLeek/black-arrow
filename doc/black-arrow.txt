@@ -1,0 +1,17 @@
+*black-arrow.txt* A multi-thread keyword searcher
+
+                  Black-Arrow Keyword Searcher
+
+==============================================================================
+
+CONTENTS                                 *black-arrow contents*
+
+    1. Introduction .................... |black-arrow-intro|
+
+
+Original Author:    Will Farmer
+License:            Apache
+
+INTRODUCTION                                *black-arrow-intro*
+
+foo bar
