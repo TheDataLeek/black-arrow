@@ -10,4 +10,10 @@ class BlackArrow(object):
 
     @neovim.command('BlackArrow', nargs='+')
     def search(self, args: str):
-        self.vim.command('echo "{}"'.format(blackarrow.get_args(args)))
+        args = blackarrow.get_args(args)   # args: argparse.Namespace
+        args.pipe = False
+        args.edit = False
+
+        search_results = blackarrow.start_search(args)
+        self.vim.command("echo '{}'".format(search_results))
+
