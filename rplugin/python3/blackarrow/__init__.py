@@ -1,4 +1,5 @@
 import sys
+import io
 import argparse
 import neovim
 from . import blackarrow
@@ -20,7 +21,7 @@ class BlackArrow(object):
 
         blackarrow.start_search(args)
 
-        self.vim.command('vsp')
+        self.vim.command('vnew')
 
-        self.vim.command('echo "{}"'.format(sys.stdout.getvalue()))
+        self.vim.input(sys.stdout.getvalue())
 
