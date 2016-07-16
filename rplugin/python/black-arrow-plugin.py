@@ -3,7 +3,7 @@
 import neovim
 
 @neovim.plugin
-class Main(object):
+class BlackArrow(object):
     def __init__(self, vim):
         self.vim = vim
 
