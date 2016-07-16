@@ -23,4 +23,4 @@ class BlackArrow(object):
 
         blackarrow.start_search(args)
 
-        self.vim.input(sys.stdout.getvalue())
+        self.vim.out_write(sys.stdout.getvalue())
