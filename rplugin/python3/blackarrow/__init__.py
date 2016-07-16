@@ -8,12 +8,18 @@ class BlackArrow(object):
     def __init__(self, vim):
         self.vim = vim
 
-    @neovim.command('BlackArrow', nargs='+')
+    @neovim.command('BlackArrow', nargs='+', async=True)
     def search(self, args: str):
         args = blackarrow.get_args(args)   # args: argparse.Namespace
         args.pipe = False
         args.edit = False
 
+        actualstdout = sys.stdout
+        sys.stdout = io.StringIO()
+
         search_results = blackarrow.start_search(args)
-        self.vim.command("echo '{}'".format(search_results))
+
+        self.vim.command('vsp')
+
+        self.vim.command('echo "{}"'.format(search_results))
 
