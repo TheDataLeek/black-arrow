@@ -22,7 +22,7 @@ class BlackArrow(object):
         self.vim.command('vnew')
         self.vim.command('vertical resize 30')
 
-        self.vim.command('echo "{}, {}"'.format(self.vim.options['netrw_list_hide'], self.vim.vars['netrw_list_hide']))
+        self.vim.command('echo "{}"'.format(self.vim.vars['netrw_list_hide']))
         # self.vim.options['netrw_list_hide'] = '.*'
 
         # actualstdout = sys.stdout
