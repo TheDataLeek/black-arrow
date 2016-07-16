@@ -1,5 +1,8 @@
 #!/usr/bin/python3.5
 
+"""
+Black-Arrow file keyword searcher
+"""
 
 import argparse
 import sys
