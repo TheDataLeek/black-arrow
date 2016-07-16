@@ -8,6 +8,7 @@ import re
 import multiprocessing as mp
 import time
 import subprocess
+from typing import Optional
 import fabulous.color as color
 
 
@@ -150,7 +151,7 @@ def insert_colour(str_to_add: str, regex: RETYPE) -> str:
     return re.sub('^[ \t]+', '', re.sub(regex, str(color.fg256('yellow', r'\g<0>')), str_to_add))
 
 
-def get_args() -> argparse.Namespace:
+def get_args(manual_args=None: Optional[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     regex_group = parser.add_mutually_exclusive_group(required=True)
     regex_group.add_argument('regex_positional', metavar='R', type=str, default=None, nargs='?',
@@ -169,7 +170,10 @@ def get_args() -> argparse.Namespace:
                         help=('Run in "pipe" mode with brief output'))
     parser.add_argument('-e', '--edit', action='store_true', default=False,
                         help=('Edit the files?'))
-    args = parser.parse_args()
+    if manual_args is not None:
+        args = parser.parse_args(args=manual_args)
+    else:
+        args = parser.parse_args()
     args.regex = args.regex_positional if args.regex is None else args.regex
     return args
 
