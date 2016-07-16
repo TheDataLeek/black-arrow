@@ -2,16 +2,12 @@
 
 import neovim
 
-print('here')
-
 @neovim.plugin
 class BlackArrow(object):
     def __init__(self, vim):
-        print('test')
         self.vim = vim
 
-    @neovim.function('BlackArrow', sync=True)
-    def search(self, args):
+    @neovim.autocmd('BlackArrow')
+    def search(self):
         self.vim.command('echo "hello"')
-        return 5
-
+        return 10
