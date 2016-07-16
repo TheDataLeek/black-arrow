@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.5
 
+import argparse
 import neovim
-import blackarrow
+from ... import blackarrow
 
 @neovim.plugin
 class BlackArrow(object):
@@ -11,5 +12,3 @@ class BlackArrow(object):
     @neovim.command('BlackArrow', nargs=1)
     def search(self, args):
         self.vim.command('echo "{}"'.format(args))
-
-
