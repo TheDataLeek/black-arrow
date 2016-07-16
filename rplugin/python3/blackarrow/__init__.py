@@ -5,6 +5,9 @@ import neovim
 from . import blackarrow
 
 
+# TODO: integrate with netrw
+
+
 @neovim.plugin
 class BlackArrow(object):
     def __init__(self, vim):
@@ -20,8 +23,10 @@ class BlackArrow(object):
         sys.stdout = io.StringIO()
 
         self.vim.command('vnew')
+        self.vim.command('set buftype=nofile') # make this non-editable
 
-        # blackarrow.start_search(args)
-        # self.vim.out_write(sys.stdout.getvalue())
+        printer = blackarrow.start_search(args)
+        printer.join()
 
-        self.vim.current.line = 'tsskjhasdfkljhasdfkhaskdfhaslkjfhaslkjdfh'
+        self.vim.current.line = sys.stdout.getvalue()
+
