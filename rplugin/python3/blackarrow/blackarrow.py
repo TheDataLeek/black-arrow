@@ -133,6 +133,8 @@ def print_worker(start_time: float, worker_count: int, output: mp.Queue, final_q
 
                 file_list.append((statement[1], statement[0]))
 
+    final_queue.put('EXIT')
+
     if not pipemode:
         print(('---------------\n'
                'Files Searched: {}\n'

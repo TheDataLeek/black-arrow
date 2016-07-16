@@ -22,13 +22,14 @@ class BlackArrow(object):
         self.vim.command('vnew')
         self.vim.command('vertical resize 30')
 
-        self.vim.command('echo "{}"'.format(self.vim.vars['netrw_list_hide']))
-        # self.vim.options['netrw_list_hide'] = '.*'
+        # self.vim.vars['netrw_list_hide'] = '.*'
 
-        # actualstdout = sys.stdout
-        # sys.stdout = io.StringIO()
-        # printer = blackarrow.start_search(args)
-        # printer.join()
+        printer, queue = blackarrow.start_search(args)
 
-        # self.vim.current.line = sys.stdout.getvalue()
+        while True:
+            next_item = queue.get()
+            if next_item == 'EXIT':
+                break
+            else
+                self.vim.current.line = '{}	{}'.format(*next_item)
 
