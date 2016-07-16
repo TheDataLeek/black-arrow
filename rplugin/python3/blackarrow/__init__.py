@@ -30,6 +30,6 @@ class BlackArrow(object):
             next_item = queue.get()
             if next_item == 'EXIT':
                 break
-            else
+            else:
                 self.vim.current.line = '{}	{}'.format(*next_item)
 
