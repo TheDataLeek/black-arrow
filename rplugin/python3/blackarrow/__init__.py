@@ -22,5 +22,5 @@ class BlackArrow(object):
 
         self.vim.command('vsp')
 
-        self.vim.command('echo "{}"'.format(sys.stdout.getvalue())
+        self.vim.command('echo "{}"'.format(sys.stdout.getvalue()))
 
