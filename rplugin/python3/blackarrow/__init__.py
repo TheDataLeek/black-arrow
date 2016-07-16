@@ -1,6 +1,6 @@
 import argparse
 import neovim
-import blackarrow
+from blackarrow import blackarrow
 
 @neovim.plugin
 class BlackArrow(object):
