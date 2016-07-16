@@ -151,7 +151,7 @@ def insert_colour(str_to_add: str, regex: RETYPE) -> str:
     return re.sub('^[ \t]+', '', re.sub(regex, str(color.fg256('yellow', r'\g<0>')), str_to_add))
 
 
-def get_args(manual_args=None: Optional[str]) -> argparse.Namespace:
+def get_args(manual_args: Optional[str]=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     regex_group = parser.add_mutually_exclusive_group(required=True)
     regex_group.add_argument('regex_positional', metavar='R', type=str, default=None, nargs='?',
