@@ -1,8 +1,6 @@
-#!/usr/bin/env python3.5
-
 import argparse
 import neovim
-from . import blackarrow
+import blackarrow
 
 @neovim.plugin
 class BlackArrow(object):
