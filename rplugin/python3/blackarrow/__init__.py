@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import io
 import argparse
 import neovim
@@ -21,23 +21,19 @@ class BlackArrow(object):
 
         self.vim.command('vnew')
         self.vim.command('vertical resize 30')
+        self.vim.command('set nomodifiable')
         self.vim.vars['buftype'] = 'nofile'
 
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
-        self.vim.current.buffer.append("test")
+        self.vim.current.line = 'Finding {} in {}'.format(args.regex_positional, os.getcwd())
 
-        # printer, queue = blackarrow.start_search(args)
+        printer, queue = blackarrow.start_search(args)
 
-        # while True:
-        #     self.vim.command("echo 'here'")
-        #     next_item = queue.get()
-        #     if next_item == 'EXIT':
-        #         break
-        #     else:
-        #         self.vim.current.buffer.append('{}	{}'.format(*next_item))
+        i = 0
+        while True:
+            self.vim.command("echo 'here'")
+            next_item = queue.get()
+            if next_item == 'EXIT':
+                break
+            else:
+                self.vim.current.buffer.append('{}) {}	{}'.format(i, *next_item))
 
