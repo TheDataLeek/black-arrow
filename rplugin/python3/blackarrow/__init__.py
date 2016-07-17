@@ -28,10 +28,10 @@ class BlackArrow(object):
 
         i = 0
         while True:
-            self.vim.command("echo '{}'".format(i))
-            next_item = queue.get()
+            filename, linenumber = queue.get()
             if next_item == 'EXIT':
                 break
             else:
-                self.vim.current.buffer.append('{}) {}	{}'.format(i, *next_item))
+                self.vim.current.buffer.append('{}|{}:{}'.format(i, filename, linenumber))
+            i += 1
 
