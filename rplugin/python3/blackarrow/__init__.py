@@ -31,5 +31,5 @@ class BlackArrow(object):
             if next_item == 'EXIT':
                 break
             else:
-                self.vim.current.line = '{}	{}'.format(*next_item)
+                self.vim.current.buffer = '{}	{}'.format(*next_item)
 
