@@ -23,14 +23,21 @@ class BlackArrow(object):
         self.vim.command('vertical resize 30')
         self.vim.vars['buftype'] = 'nofile'
 
-        self.vim.current.line = 'starting\n'
-        printer, queue = blackarrow.start_search(args)
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
+        self.vim.current.buffer.append("test")
 
-        while True:
-            self.vim.command("echo 'here'")
-            next_item = queue.get()
-            if next_item == 'EXIT':
-                break
-            else:
-                self.vim.current.line = '{}	{}'.format(*next_item)
+        # printer, queue = blackarrow.start_search(args)
+
+        # while True:
+        #     self.vim.command("echo 'here'")
+        #     next_item = queue.get()
+        #     if next_item == 'EXIT':
+        #         break
+        #     else:
+        #         self.vim.current.buffer.append('{}	{}'.format(*next_item))
 
