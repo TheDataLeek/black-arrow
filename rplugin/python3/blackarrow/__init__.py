@@ -28,7 +28,7 @@ class BlackArrow(object):
 
         i = 0
         while True:
-            self.vim.command("echo 'here'")
+            self.vim.command("echo '{}'".format(i))
             next_item = queue.get()
             if next_item == 'EXIT':
                 break
