@@ -22,14 +22,12 @@ class BlackArrow(object):
         self.vim.command('vnew')
         self.vim.command('vertical resize 30')
         self.vim.vars['buftype'] = 'nofile'
-        self.vim.vars['bufhidden'] = 'hide'
-
-        # self.vim.vars['netrw_list_hide'] = '.*'
 
         self.vim.current.line = 'starting\n'
         printer, queue = blackarrow.start_search(args)
 
         while True:
+            self.vim.command("echo 'here'")
             next_item = queue.get()
             if next_item == 'EXIT':
                 break
