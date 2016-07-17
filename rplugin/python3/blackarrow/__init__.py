@@ -21,8 +21,6 @@ class BlackArrow(object):
 
         self.vim.command('vnew')
         self.vim.command('vertical resize 30')
-        self.vim.command('set nomodifiable')
-        self.vim.vars['buftype'] = 'nofile'
 
         self.vim.current.line = 'Finding {} in {}'.format(args.regex_positional, os.getcwd())
 
