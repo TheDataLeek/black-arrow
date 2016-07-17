@@ -38,6 +38,8 @@ def start_search(args:argparse.Namespace):
     output = mp.Queue()
     final_queue = mp.Queue()
 
+    final_queue.append('creating jobs')
+
     indexer = mp.Process(name='indexer',
                          target=index_worker,
                          args=(args.directories,
@@ -58,6 +60,7 @@ def start_search(args:argparse.Namespace):
                          args=(start_time, args.workers,
                                output, final_queue, args.pipe, args.edit))
     printer.start()
+    final_queue.append('jobs started')
     return printer, final_queue
 
 
