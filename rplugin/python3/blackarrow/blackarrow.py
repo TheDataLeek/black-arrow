@@ -21,7 +21,7 @@ EDITOR = os.environ.get('EDITOR', 'vim')
 
 def main():
     args = get_args()
-    print_process = start_search(args)
+    print_process, final_queue = start_search(args)
     print_process.join()    # Wait main thread until printer is done
 
 
