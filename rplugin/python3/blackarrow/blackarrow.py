@@ -58,6 +58,7 @@ def start_search(args:argparse.Namespace):
                          args=(start_time, args.workers,
                                output, final_queue, args.pipe, args.edit))
     printer.start()
+    final_queue.put(("test", "content"))
     return printer, final_queue
 
 
