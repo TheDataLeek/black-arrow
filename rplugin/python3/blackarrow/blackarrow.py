@@ -58,7 +58,6 @@ def start_search(args:argparse.Namespace):
                          args=(start_time, args.workers,
                                output, final_queue, args.pipe, args.edit))
     printer.start()
-    final_queue.put(("test", "content"))
     return printer, final_queue
 
 
@@ -109,11 +108,12 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
 
 def print_worker(start_time: float, worker_count: int, output: mp.Queue, final_queue: mp.Queue,
                  pipemode: bool, editmode: bool) -> None:
-    file_count = 0
+    file_count  = 0
     found_count = 0
-    exit_count = 0
-    line_count = 0
-    file_list = []
+    exit_count  = 0
+    line_count  = 0
+    file_list   = []
+    final_queue.put(('printing', 'job working'))
     while True:
         statement = output.get()
         if statement[0] == 'EXIT':
