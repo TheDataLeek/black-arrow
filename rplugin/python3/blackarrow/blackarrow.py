@@ -67,7 +67,6 @@ def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Qu
             for question_file in files:
                 # we don't want to block, this process should be fastest
                 input.put(subdir + '/' + question_file, block=False, timeout=10)  # faster than os.path.join
-            print(subdir)
     for i in range(workers):
         input.put('EXIT')  # poison pill workers
 
