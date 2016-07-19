@@ -15,7 +15,7 @@ class BlackArrow(object):
 
     @neovim.command('BlackArrow', nargs='+', sync=False)
     def search(self, args: str):
-        args = blackarrow.get_args(args)   # args: argparse.Namespace
+        args = blackarrow.get_args(manual_args=args)   # args: argparse.Namespace
         args.pipe = False
         args.edit = False
 

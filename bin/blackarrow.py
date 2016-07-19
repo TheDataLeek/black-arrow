@@ -15,8 +15,8 @@ from typing import Optional
 import fabulous.color as color
 
 
-RETYPE = type(re.compile('a'))
-EDITOR = os.environ.get('EDITOR', 'vim')
+RETYPE = type(re.compile('a'))  # since re module apparently doesn't have good compiled types
+EDITOR = os.environ.get('EDITOR', 'vim')  # Default editor
 
 
 def main():
@@ -26,8 +26,12 @@ def main():
 
 
 def start_search(args:argparse.Namespace):
+    """
+    This function is separated out in order to use code as module
+    """
     start_time = time.time()
 
+    # compile for performance reasons
     try:
         ignore_re = re.compile('a^')
         if args.ignore:
@@ -41,7 +45,7 @@ def start_search(args:argparse.Namespace):
         raise
     input = mp.Queue()
     output = mp.Queue()
-    final_queue = mp.Queue()
+    final_queue = mp.Queue()  # Use final queue for external output
 
     indexer = mp.Process(name='indexer',
                          target=index_worker,
@@ -81,6 +85,7 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
     found_count = 0
     # https://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
     rows, columns = os.popen('stty size', 'r').read().split()
+    # Max width of printed line is 3/4 column count
     maxwidth = int(3 * int(columns) / 4)
     while True:
         # we want to block this thread until we get input
