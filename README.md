@@ -21,7 +21,7 @@ The script can also be used just as-is, just add it to your path.
 ## Black-Arrow Script
 
 ```bash
-┬─[william@fillory:~/Dropbox/Projects/black-arrow]─[09:33:40 PM]
+┬─[zoe@fillory:~/Dropbox/Projects/black-arrow]─[09:33:40 PM]
 ╰─>$ ./black-arrow/blackarrow.py -h
 usage: blackarrow.py [-h] [-r REGEX] [-d DIRECTORIES [DIRECTORIES ...]]
                      [-i IGNORE [IGNORE ...]] [-f FILENAME [FILENAME ...]]
