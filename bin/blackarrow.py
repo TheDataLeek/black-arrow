@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 """
 Black-Arrow file keyword searcher
@@ -16,13 +16,18 @@ import fabulous.color as color
 
 
 RETYPE = type(re.compile('a'))  # since re module apparently doesn't have good compiled types
-EDITOR = os.environ.get('EDITOR', 'vim')  # Default editor
+EDITOR = os.environ.get('EDITOR', 'nvim')  # Default editor
 
 
 def main():
     args = get_args()
-    print_process, final_queue = start_search(args)
-    print_process.join()    # Wait main thread until printer is done
+    processes, final_queue = start_search(args)
+    print_process = processes[-1]
+    try:
+        print_process.join()    # Wait main thread until printer is done
+    except (KeyboardInterrupt, EOFError):
+        [p.terminate() for p in processes]
+
 
 
 def start_search(args:argparse.Namespace):
@@ -46,6 +51,7 @@ def start_search(args:argparse.Namespace):
     input = mp.Queue()
     output = mp.Queue()
     final_queue = mp.Queue()  # Use final queue for external output
+    processes = []
 
     indexer = mp.Process(name='indexer',
                          target=index_worker,
@@ -54,6 +60,7 @@ def start_search(args:argparse.Namespace):
                                args.workers,
                                input, output))
     indexer.start()
+    processes.append(indexer)
 
     for i in range(args.workers):
         worker = mp.Process(name='worker-{}'.format(i + 1),
@@ -61,12 +68,15 @@ def start_search(args:argparse.Namespace):
                             args=(search_re, ignore_re, filename_re,
                                   input, output))
         worker.start()
+        processes.append(worker)
     printer = mp.Process(name='printer',
                          target=print_worker,
                          args=(start_time, args.workers,
                                output, final_queue, args.pipe, args.edit))
     printer.start()
-    return printer, final_queue
+    processes.append(printer)
+
+    return processes, final_queue
 
 
 def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue) -> None:
