@@ -47,10 +47,10 @@ def start_search(args:argparse.Namespace):
         if args.filename:
             filename_re = re.compile('|'.join(args.filename))
 
-        if args.regex == args.regex.lower():
-            search_re = re.compile(args.regex, flags=re.IGNORECASE)
-        else:
+        if args.lower or args.regex != args.regex.lower():
             search_re = re.compile(args.regex)
+        else:
+            search_re = re.compile(args.regex, flags=re.IGNORECASE)
     except re.error as e:
         print(color.red('Error, bad regular expression:'))
         raise
@@ -203,6 +203,8 @@ def get_args(manual_args: Optional[str]=None) -> argparse.Namespace:
                         help=('Run in "pipe" mode with brief output'))
     parser.add_argument('-e', '--edit', action='store_true', default=False,
                         help=('Edit the files?'))
+    parser.add_argument('-l', '--lower', action='store_true', default=False,
+                        help=('Check strict lower case?'))
     if manual_args is not None:
         args = parser.parse_args(args=manual_args)
     else:
