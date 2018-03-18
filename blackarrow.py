@@ -1,7 +1,9 @@
-#!/usr/bin/python3.5
+#!/usr/bin/env python3
 
 """
 Black-Arrow file keyword searcher
+
+Python3.5+
 """
 
 import argparse
@@ -15,19 +17,28 @@ from typing import Optional
 import fabulous.color as color
 
 
-RETYPE = type(re.compile('a'))
-EDITOR = os.environ.get('EDITOR', 'vim')
+RETYPE = type(re.compile('a'))  # since re module apparently doesn't have good compiled types
+EDITOR = os.environ.get('EDITOR', 'nvim')  # Default editor
 
 
 def main():
     args = get_args()
-    print_process, final_queue = start_search(args)
-    print_process.join()    # Wait main thread until printer is done
+    processes, final_queue = start_search(args)
+    print_process = processes[-1]
+    try:
+        print_process.join()    # Wait main thread until printer is done
+    except (KeyboardInterrupt, EOFError):
+        [p.terminate() for p in processes]
+
 
 
 def start_search(args:argparse.Namespace):
+    """
+    This function is separated out in order to use code as module
+    """
     start_time = time.time()
 
+    # compile for performance reasons
     try:
         ignore_re = re.compile('a^')
         if args.ignore:
@@ -35,13 +46,18 @@ def start_search(args:argparse.Namespace):
         filename_re = re.compile('.*')
         if args.filename:
             filename_re = re.compile('|'.join(args.filename))
-        search_re = re.compile(args.regex)
+
+        if args.regex == args.regex.lower():
+            search_re = re.compile(args.regex, flags=re.IGNORECASE)
+        else:
+            search_re = re.compile(args.regex)
     except re.error as e:
         print(color.red('Error, bad regular expression:'))
         raise
     input = mp.Queue()
     output = mp.Queue()
-    final_queue = mp.Queue()
+    final_queue = mp.Queue()  # Use final queue for external output
+    processes = []
 
     indexer = mp.Process(name='indexer',
                          target=index_worker,
@@ -50,6 +66,7 @@ def start_search(args:argparse.Namespace):
                                args.workers,
                                input, output))
     indexer.start()
+    processes.append(indexer)
 
     for i in range(args.workers):
         worker = mp.Process(name='worker-{}'.format(i + 1),
@@ -57,12 +74,15 @@ def start_search(args:argparse.Namespace):
                             args=(search_re, ignore_re, filename_re,
                                   input, output))
         worker.start()
+        processes.append(worker)
     printer = mp.Process(name='printer',
                          target=print_worker,
                          args=(start_time, args.workers,
                                output, final_queue, args.pipe, args.edit))
     printer.start()
-    return printer, final_queue
+    processes.append(printer)
+
+    return processes, final_queue
 
 
 def index_worker(directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue) -> None:
@@ -81,6 +101,7 @@ def file_searching_worker(regex: RETYPE, ignore_re: RETYPE, filename_re: RETYPE,
     found_count = 0
     # https://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
     rows, columns = os.popen('stty size', 'r').read().split()
+    # Max width of printed line is 3/4 column count
     maxwidth = int(3 * int(columns) / 4)
     while True:
         # we want to block this thread until we get input
