@@ -13,10 +13,7 @@ That out of the way, let's talk about what this *actually does*...
 
 Note, this is written in Python3.5, and uses type checking syntax.
 
-I use [Vundle](https://github.com/VundleVim/Vundle.vim), but Pathogen or
-whatever you want to use also works.
-
-The script can also be used just as-is, just add it to your path.
+The script can be used just as-is, just add it to your path.
 
 ## Black-Arrow Script
 
@@ -63,13 +60,6 @@ Lines Searched: 639
 Duration: 0.04977011680603027
 
 ```
-
-## Black-Arrow NeoVim Plugin
-
-
-
-
-
 
 #### The Name
 
