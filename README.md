@@ -11,9 +11,10 @@ That out of the way, let's talk about what this *actually does*...
 
 ## Installation
 
-Note, this is written in Python3.5, and uses type checking syntax.
-
-The script can be used just as-is, just add it to your path.
+```
+┬─[zoe@fillory:~/Dropbox/Projects/black-arrow]─[09:22:12 PM]
+╰─>$ pip install --user blackarrow
+```
 
 ## Black-Arrow Script
 
