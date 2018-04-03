@@ -1,5 +1,6 @@
 # using https://github.com/pypa/sampleproject/blob/master/setup.py
 
+from os import path
 from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
@@ -20,6 +21,19 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
-
-    ]
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Operating System :: Unix',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
+    ],
+    keywords='development searching text find replace',
+    pymodules=['blackarrow'],
+    install_requires=['fabulous'],
+    entry_points={
+        'console_scripts': [
+            'blackarrow=blackarrow:main'
+        ]
+    }
 )
