@@ -45,6 +45,23 @@ optional arguments:
                         Number of workers to use (default 2)
   -p, --pipe            Run in "pipe" mode with brief output
   -e, --edit            Edit the files?
+  
+┬─[zoe@fillory:~/Dropbox/Projects/black-arrow]-[09:35:40 PM]
+╰─>$ ./blackarrow.py biz
+./sample/tester.txt:1
+	barzzz barzzz biz bang
+./sample/tester.txt:2
+	barzzz barzzz biz bang
+./sample/tester.txt:3
+	barzzz barzzz biz bang
+./sample/tester.txt:4
+	barzzz barzzz biz bang
+---------------
+Files Searched: 11
+Files Matched: 1
+Lines Searched: 639
+Duration: 0.04977011680603027
+
 ```
 
 ## Black-Arrow NeoVim Plugin
