@@ -152,8 +152,6 @@ def file_searching_worker(
                     if replace is not None:
                         ofile.seek(0)  # reset to beginning
                         new_text = regex.subn(replace, ofile.read())
-                if replace is not None:
-                    with open(name, "w") as ofile:
                         ofile.write(new_text)
             except:
                 pass
