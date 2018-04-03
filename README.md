@@ -1,5 +1,9 @@
 "Universal" Text Finder
 =======================
+
+[![Test Status](https://travis-ci.org/TheDataLeek/black-arrow.svg?branch=master)](https://travis-ci.org/TheDataLeek/black-arrow)
+[![Coverage Status](https://coveralls.io/repos/github/TheDataLeek/black-arrow/badge.svg?branch=master)](https://coveralls.io/github/TheDataLeek/black-arrow?branch=master)
+
 It's basically just grep in python... Nothing fancy, just an easy extensible way
 to find things....
 
