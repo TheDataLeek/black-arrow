@@ -2,10 +2,11 @@
 
 from os import path
 from setuptools import setup
+from codecs import open
 
 here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, 'README.md'), 'r') as readmefobj:
+with open(path.join(here, 'README.md'), encoding='utf-8') as readmefobj:
     long_desc = readmefobj.read()
 
 setup(
