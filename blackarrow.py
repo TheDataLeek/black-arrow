@@ -17,7 +17,6 @@ import time
 import subprocess
 from typing import Optional
 import fabulous.color as color
-import io
 
 from typing import Union
 
@@ -59,11 +58,6 @@ def start_search(args: argparse.Namespace):
             search_re = re.compile(args.regex)
         else:
             search_re = re.compile(args.regex, flags=re.IGNORECASE)
-
-        if args.replace is not None:
-            replace_re = re.compile(args.replace)
-        else:
-            replace_re = None
     except re.error as e:
         print(color.red("Error, bad regular expression:"))
         raise
@@ -85,7 +79,7 @@ def start_search(args: argparse.Namespace):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
-            args=(search_re, ignore_re, filename_re, replace_re, input, output),
+            args=(search_re, ignore_re, filename_re, args.replace, input, output),
         )
         worker.start()
         processes.append(worker)
@@ -118,7 +112,7 @@ def file_searching_worker(
     regex: RETYPE,
     ignore_re: RETYPE,
     filename_re: RETYPE,
-    replace_re: Union[RETYPE, None],
+    replace: Union[RETYPE, None],
     input: mp.Queue,
     output: mp.Queue,
 ) -> None:
@@ -155,12 +149,13 @@ def file_searching_worker(
                         found_count += 1
                         for value in flag:
                             output.put((name, value[0], value[1], regex))
-                    if replace_re is not None:
+                    if replace is not None:
                         ofile.seek(0)  # reset to beginning
-                        new_text = regex.subn(replace_re, ofile.read())
-                if new_text is not None:
-                    with open(name, "w") as ofile:
-                        ofile.write(new_text)
+                        new_text = regex.subn(replace, ofile.read())
+                if replace is not None:
+                    print(new_text)
+                    # with open(name, "w") as ofile:
+                    #     ofile.write(new_text)
             except:
                 pass
 
