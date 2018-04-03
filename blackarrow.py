@@ -43,7 +43,7 @@ def start_search(args: argparse.Namespace):
     """
     start_time = time.time()
 
-    args.ignore = args.ignore + ["build/", "\.min\.js"]
+    args.ignore = args.ignore + ["build", "\.min\.js", ".git"]
 
     # compile for performance reasons
     try:
@@ -112,7 +112,7 @@ def file_searching_worker(
     regex: RETYPE,
     ignore_re: RETYPE,
     filename_re: RETYPE,
-    replace: Union[RETYPE, None],
+    replace: Union[str, None],
     input: mp.Queue,
     output: mp.Queue,
 ) -> None:
@@ -134,7 +134,7 @@ def file_searching_worker(
             file_count += 1
             try:
                 new_text = None
-                with open(name, "r+") as ofile:
+                with open(name, "r") as ofile:
                     flag = []
                     i = 1
                     for line in ofile:
@@ -148,10 +148,15 @@ def file_searching_worker(
                     if flag:
                         found_count += 1
                         for value in flag:
-                            output.put((name, value[0], value[1], regex))
+                            if replace is not None:
+                                output.put((name, value[0], value[1], regex, replace))
+                            else:
+                                output.put((name, value[0], value[1], regex))
                     if replace is not None:
                         ofile.seek(0)  # reset to beginning
-                        new_text = regex.subn(replace, ofile.read())
+                        new_text = regex.subn(replace, ofile.read())[0]
+                if replace is not None:
+                    with open(name, "w") as ofile:
                         ofile.write(new_text)
             except:
                 pass
@@ -181,15 +186,20 @@ def print_worker(
                 break
 
         else:
-            final_queue.put(statement[0], statement[1])
+            if len(statement) == 4:
+                filename, linenum, matched, line = statement
+                replace = None
+            else:
+                filename, linenum, matched, line, replace = statement
+            final_queue.put(filename, linenum)
             if pipemode:
-                print("{}	{}	{}".format(statement[0], statement[1], statement[2]))
+                print("{}	{}	{}".format(filename, linenum, matched))
             else:
                 print(
                     "{}:{}\n\t{}".format(
-                        statement[0],
-                        color.fg256("#00ff00", statement[1]),
-                        insert_colour(statement[2], statement[3]),
+                        filename,
+                        color.fg256("#00ff00", linenum),
+                        insert_colour(matched, line, extra_str=replace),
                     )
                 )
 
@@ -223,9 +233,13 @@ def print_worker(
         subprocess.call(call_string, shell=True)
 
 
-def insert_colour(str_to_add: str, regex: RETYPE) -> str:
+def insert_colour(str_to_add: str, regex: RETYPE, extra_str=None) -> str:
+    if extra_str is None:
+        replace_str = str(color.fg256("yellow", r"\g<0>"))
+    else:
+        replace_str = str(color.fg256("yellow", r"(\g<0> -> {})".format(extra_str)))
     return re.sub(
-        "^[ \t]+", "", re.sub(regex, str(color.fg256("yellow", r"\g<0>")), str_to_add)
+        "^[ \t]+", "", re.sub(regex, replace_str, str_to_add)
     )
 
 
