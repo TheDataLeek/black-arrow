@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # using https://github.com/pypa/sampleproject/blob/master/setup.py
 
 from os import path
