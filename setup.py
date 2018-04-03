@@ -33,7 +33,8 @@ setup(
     install_requires=['fabulous'],
     entry_points={
         'console_scripts': [
-            'blackarrow=blackarrow:main'
+            'blackarrow=blackarrow:main',
+            'ba=blackarrow:main'
         ]
     }
 )
