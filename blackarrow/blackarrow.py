@@ -4,8 +4,6 @@
 Black-Arrow file keyword searcher
 
 Python3.5+
-
-foo
 """
 
 import argparse
@@ -33,7 +31,7 @@ def main():
     print_process = processes[-1]
     try:
         print_process.join()  # Wait main thread until printer is done
-    except (KeyboardInterrupt, EOFError):
+    except (KeyboardInterrupt, EOFError):  # kill all on ctrl+c/d
         [p.terminate() for p in processes]
 
 
@@ -233,13 +231,21 @@ def print_worker(
         subprocess.call(call_string, shell=True)
 
 
-def insert_colour(str_to_add: str, regex: RETYPE, extra_str=None) -> str:
+def insert_colour(matchstring: str, regex: RETYPE, extra_str=None) -> str:
+    """
+    Given some string and a regex, color the match inside that string
+    
+    :param matchstring: 
+    :param regex: 
+    :param extra_str: 
+    :return: 
+    """
     if extra_str is None:
         replace_str = str(color.fg256("yellow", r"\g<0>"))
     else:
         replace_str = str(color.fg256("yellow", r"(\g<0> -> {})".format(extra_str)))
     return re.sub(
-        "^[ \t]+", "", re.sub(regex, replace_str, str_to_add)
+        "^[ \t]+", "", re.sub(regex, replace_str, matchstring)
     )
 
 
@@ -254,8 +260,6 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         nargs="?",
         help="Search term (regular expression)",
     )
-    # regex_group.add_argument('-r', '--regex', type=str, default=None,
-    #                          help='Search term (regular expression)')
     parser.add_argument(
         "-d",
         "--directories",
@@ -315,7 +319,6 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         args = parser.parse_args(args=manual_args)
     else:
         args = parser.parse_args()
-    # args.regex = args.regex_positional if args.regex is None else args.regex
     args.regex = args.regex_positional
     return args
 
