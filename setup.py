@@ -2,7 +2,7 @@
 # using https://github.com/pypa/sampleproject/blob/master/setup.py
 
 from os import path
-from setuptools import setup
+from setuptools import setup, find_packages
 from codecs import open
 
 here = path.abspath(path.dirname(__file__))
@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as readmefobj:
 
 setup(
     name='blackarrow',
-    version='1.0.4',
+    version='1.0.5',
     description='A fast keyword searcher',
     long_description=long_desc,
     long_description_content_type='text/markdown',
@@ -31,7 +31,7 @@ setup(
         'Programming Language :: Python :: 3.7'
     ],
     keywords='development searching text find replace',
-    pymodules=['blackarrow'],
+    packages=find_packages(exclude=['tests']),
     install_requires=['fabulous'],
     entry_points={
         'console_scripts': [

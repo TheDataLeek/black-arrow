@@ -1,1 +1,3 @@
-{}
+{
+  "blackarrow/test/test_indexing.py::test_correct_results": true
+}

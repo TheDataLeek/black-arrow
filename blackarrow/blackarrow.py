@@ -14,7 +14,7 @@ import time
 import subprocess
 import fabulous.color as color
 
-from typing import Union
+from typing import List, Union
 
 
 RETYPE = type(
@@ -81,7 +81,7 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: str, ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue
+    directories: List[str], ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, _, files in os.walk(dir):
