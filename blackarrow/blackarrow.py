@@ -81,14 +81,14 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: List[str], ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue
+    directories: List[str], ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue, block=False
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, _, files in os.walk(dir):
             for question_file in files:
                 # we don't want to block, this process should be fastest
                 input.put(
-                    subdir + "/" + question_file, block=False, timeout=10
+                    subdir + "/" + question_file, block=block, timeout=10
                 )  # faster than os.path.join
     for i in range(workers):
         input.put("EXIT")  # poison pill workers
