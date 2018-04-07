@@ -55,8 +55,8 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         "-w",
         "--workers",
         type=int,
-        default=4,
-        help=("Number of workers to use (default 4)"),
+        default=None,
+        help=("Number of workers to use (default numcores, with fallback 6 unless set)"),
     )
     parser.add_argument(
         "-p",

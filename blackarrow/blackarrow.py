@@ -48,6 +48,14 @@ def start_search(args: argparse.Namespace):
         print(color.red("Error, bad regular expression:"))
         raise
 
+    # get numworkers
+    # default to numcores
+    # backup is 6 or specified by user
+    try:
+        numworkers = mp.cpu_count()
+    except NotImplementedError:
+        numworkers = args.workers or 6
+
     search_queue = mp.Queue()
     output = mp.Queue()
     final_queue = mp.Queue()  # Use final queue for external output
@@ -56,12 +64,12 @@ def start_search(args: argparse.Namespace):
     indexer = mp.Process(
         name="indexer",
         target=index_worker,
-        args=(args.directories, ignore_re, args.workers, search_queue, output),
+        args=(args.directories, ignore_re, numworkers, search_queue, output),
     )
     indexer.start()
     processes.append(indexer)
 
-    for i in range(args.workers):
+    for i in range(numworkers):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
@@ -72,7 +80,7 @@ def start_search(args: argparse.Namespace):
     printer = mp.Process(
         name="printer",
         target=print_worker,
-        args=(start_time, args.workers, output, final_queue, args.pipe, args.edit),
+        args=(start_time, numworkers, output, final_queue, args.pipe, args.edit),
     )
     printer.start()
     processes.append(printer)
