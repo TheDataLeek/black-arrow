@@ -1,15 +1,20 @@
 from ..blackarrow import index_worker
 
-import os
 import pytest
-import glob
-import multiprocessing as mp
+import queue
 
 
 @pytest.fixture
 def results():
-    input_queue = mp.Queue()
-    index_worker(['sample'], None, 1, input_queue, None, block=True)
+    input_queue = queue.Queue()
+    index_worker(
+        ['sample'],  # directories to look in
+        None,  # things to ignore
+        1,  # num workers
+        input_queue,  # where to put results
+        None,   # output (not needed)
+        block=True   # whether or not to block
+    )
 
     vals = []
     while not input_queue.empty():
@@ -22,4 +27,12 @@ def test_not_empty(results):
 
 
 def test_correct_results(results):
-    assert True
+    assert (
+        len(
+            set(results).difference(
+                {'sample/tester.txt',
+                 'sample/tester2.txt',
+                 'EXIT'}
+            )
+        ) == 0
+    )

@@ -48,7 +48,7 @@ def start_search(args: argparse.Namespace):
         print(color.red("Error, bad regular expression:"))
         raise
 
-    input = mp.Queue()
+    search_queue = mp.Queue()
     output = mp.Queue()
     final_queue = mp.Queue()  # Use final queue for external output
     processes = []
@@ -56,7 +56,7 @@ def start_search(args: argparse.Namespace):
     indexer = mp.Process(
         name="indexer",
         target=index_worker,
-        args=(args.directories, ignore_re, args.workers, input, output),
+        args=(args.directories, ignore_re, args.workers, search_queue, output),
     )
     indexer.start()
     processes.append(indexer)
@@ -65,7 +65,7 @@ def start_search(args: argparse.Namespace):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
-            args=(search_re, ignore_re, filename_re, args.replace, input, output),
+            args=(search_re, ignore_re, filename_re, args.replace, search_queue, output),
         )
         worker.start()
         processes.append(worker)
@@ -81,17 +81,17 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: List[str], ignore_re: RETYPE, workers: int, input: mp.Queue, output: mp.Queue, block=False
+    directories: List[str], ignore_re: RETYPE, workers: int, search_queue: mp.Queue, output: mp.Queue, block=False
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, _, files in os.walk(dir):
             for question_file in files:
                 # we don't want to block, this process should be fastest
-                input.put(
+                search_queue.put(
                     subdir + "/" + question_file, block=block, timeout=10
                 )  # faster than os.path.join
     for i in range(workers):
-        input.put("EXIT")  # poison pill workers
+        search_queue.put("EXIT")  # poison pill workers
 
 
 def file_searching_worker(
@@ -99,7 +99,7 @@ def file_searching_worker(
     ignore_re: RETYPE,
     filename_re: RETYPE,
     replace: Union[str, None],
-    input: mp.Queue,
+    search_queue: mp.Queue,
     output: mp.Queue,
 ) -> None:
     line_count = 0
@@ -110,8 +110,8 @@ def file_searching_worker(
     # Max width of printed line is 3/4 column count
     maxwidth = int(3 * int(columns) / 4)
     while True:
-        # we want to block this thread until we get input
-        name = input.get()
+        # we want to block this thread until we get search_queue
+        name = search_queue.get()
         if name == "EXIT":
             output.put(("EXIT", line_count, file_count, found_count))
             break
