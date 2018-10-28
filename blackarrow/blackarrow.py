@@ -205,10 +205,10 @@ def print_worker(
         print(
             (
                 "---------------\n"
-                "Files Searched: {}\n"
-                "Files Matched: {}\n"
-                "Lines Searched: {}\n"
-                "Duration: {}"
+                "Files Searched: {:,}\n"
+                "Files Matched: {:,}\n"
+                "Lines Searched: {:,}\n"
+                "Duration: {:.3f}"
             ).format(
                 file_count, found_count, line_count, time.time() - start_time
             )
@@ -230,11 +230,11 @@ def print_worker(
 def insert_colour(matchstring: str, regex: RETYPE, extra_str=None) -> str:
     """
     Given some string and a regex, color the match inside that string
-    
-    :param matchstring: 
-    :param regex: 
-    :param extra_str: 
-    :return: 
+
+    :param matchstring:
+    :param regex:
+    :param extra_str:
+    :return:
     """
     if extra_str is None:
         replace_str = str(color.fg256("yellow", r"\g<0>"))
@@ -243,4 +243,3 @@ def insert_colour(matchstring: str, regex: RETYPE, extra_str=None) -> str:
     return re.sub(
         "^[ \t]+", "", re.sub(regex, replace_str, matchstring)
     )
-
