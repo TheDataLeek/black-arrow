@@ -13,6 +13,7 @@ def results():
         1,  # num workers
         input_queue,  # where to put results
         None,   # output (not needed)
+        None,   # depth (not needed)
         block=True   # whether or not to block
     )
 
