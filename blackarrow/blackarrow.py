@@ -61,13 +61,15 @@ def start_search(args: argparse.Namespace):
     final_queue = mp.Queue()  # Use final queue for external output
     processes = []
 
-    indexer = mp.Process(
-        name="indexer",
-        target=index_worker,
-        args=(args.directories, ignore_re, numworkers, search_queue, output, args.depth),
-    )
-    indexer.start()
-    processes.append(indexer)
+    for i, directory in enumerate(args.directories):
+        depth = None if args.depth is None else args.depth + directory.count(os.sep)
+        indexer = mp.Process(
+            name="indexer-{}".format(i+1),
+            target=index_worker,
+            args=([directory], ignore_re, numworkers, search_queue, output, depth),
+        )
+        indexer.start()
+        processes.append(indexer)
 
     for i in range(numworkers):
         worker = mp.Process(
