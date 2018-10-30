@@ -66,7 +66,14 @@ def start_search(args: argparse.Namespace):
         indexer = mp.Process(
             name="indexer-{}".format(i+1),
             target=index_worker,
-            args=([directory], ignore_re, filename_re, numworkers, search_queue, depth),
+            args=(
+                [directory],
+                ignore_re,
+                filename_re,
+                numworkers,
+                search_queue,
+                depth,
+            ),
         )
         indexer.start()
         processes.append(indexer)
