@@ -66,7 +66,7 @@ def start_search(args: argparse.Namespace):
         indexer = mp.Process(
             name="indexer-{}".format(i+1),
             target=index_worker,
-            args=([directory], ignore_re, numworkers, search_queue, output, depth),
+            args=([directory], ignore_re, filename_re, numworkers, search_queue, depth),
         )
         indexer.start()
         processes.append(indexer)
@@ -75,7 +75,7 @@ def start_search(args: argparse.Namespace):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
-            args=(search_re, ignore_re, filename_re, args.replace, search_queue, output),
+            args=(search_re, args.replace, search_queue, output),
         )
         worker.start()
         processes.append(worker)
@@ -91,7 +91,13 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: List[str], ignore_re: RETYPE, workers: int, search_queue: mp.Queue, output: mp.Queue, depth: int, block=False
+    directories: List[str],
+    ignore_re: RETYPE,
+    filename_re: RETYPE,
+    workers: int,
+    search_queue: mp.Queue,
+    depth: int,
+    block=False,
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, folders, files in os.walk(dir):
@@ -100,21 +106,19 @@ def index_worker(
                 del folders[:]
 
             for question_file in files:
-                # we don't want to block, this process should be fastest
-                search_queue.put(
-                    subdir + "/" + question_file, block=block, timeout=10
-                )  # faster than os.path.join
+                should_we_search = filename_re.search(question_file) is not None
+                do_we_ignore = ignore_re.search(question_file) is None
+                if should_we_search and do_we_ignore:
+                    # we don't want to block, this process should be fastest
+                    search_queue.put(
+                        subdir + "/" + question_file, block=block, timeout=10
+                    )  # faster than os.path.join
     for i in range(workers):
         search_queue.put("EXIT")  # poison pill workers
 
 
 def file_searching_worker(
-    regex: RETYPE,
-    ignore_re: RETYPE,
-    filename_re: RETYPE,
-    replace: Union[str, None],
-    search_queue: mp.Queue,
-    output: mp.Queue,
+    regex: RETYPE, replace: Union[str, None], search_queue: mp.Queue, output: mp.Queue
 ) -> None:
     line_count = 0
     file_count = 0
@@ -130,36 +134,35 @@ def file_searching_worker(
             output.put(("EXIT", line_count, file_count, found_count))
             break
 
-        if ignore_re.search(name) is None and filename_re.search(name) is not None:
-            file_count += 1
-            try:
-                new_text = None
-                with open(name, "r") as ofile:
-                    flag = []
-                    i = 1
-                    for line in ofile:
-                        if regex.search(line):
-                            found_string = line.split("\n")[0]
-                            if len(found_string) > maxwidth:
-                                found_string = found_string[:maxwidth] + "..."
-                            flag.append((i, found_string))
-                        i += 1
-                    line_count += i
-                    if flag:
-                        found_count += 1
-                        for value in flag:
-                            if replace is not None:
-                                output.put((name, value[0], value[1], regex, replace))
-                            else:
-                                output.put((name, value[0], value[1], regex))
-                    if replace is not None:
-                        ofile.seek(0)  # reset to beginning
-                        new_text = regex.subn(replace, ofile.read())[0]
+        file_count += 1
+        try:
+            new_text = None
+            with open(name, "r") as ofile:
+                flag = []
+                i = 1
+                for line in ofile:
+                    if regex.search(line):
+                        found_string = line.split("\n")[0]
+                        if len(found_string) > maxwidth:
+                            found_string = found_string[:maxwidth] + "..."
+                        flag.append((i, found_string))
+                    i += 1
+                line_count += i
+                if flag:
+                    found_count += 1
+                    for value in flag:
+                        if replace is not None:
+                            output.put((name, value[0], value[1], regex, replace))
+                        else:
+                            output.put((name, value[0], value[1], regex))
                 if replace is not None:
-                    with open(name, "w") as ofile:
-                        ofile.write(new_text)
-            except:
-                pass
+                    ofile.seek(0)  # reset to beginning
+                    new_text = regex.subn(replace, ofile.read())[0]
+            if replace is not None:
+                with open(name, "w") as ofile:
+                    ofile.write(new_text)
+        except:
+            pass
 
 
 def print_worker(
@@ -211,13 +214,11 @@ def print_worker(
         print(
             (
                 "---------------\n"
-                "Files Searched: {}\n"
-                "Files Matched: {}\n"
-                "Lines Searched: {}\n"
-                "Duration: {}"
-            ).format(
-                file_count, found_count, line_count, time.time() - start_time
-            )
+                "Files Searched: {:,}\n"
+                "Files Matched: {:,}\n"
+                "Lines Searched: {:,}\n"
+                "Duration: {:.3f}"
+            ).format(file_count, found_count, line_count, time.time() - start_time)
         )
 
     if editmode:
@@ -246,6 +247,4 @@ def insert_colour(matchstring: str, regex: RETYPE, extra_str=None) -> str:
         replace_str = str(color.fg256("yellow", r"\g<0>"))
     else:
         replace_str = str(color.fg256("yellow", r"(\g<0> -> {})".format(extra_str)))
-    return re.sub(
-        "^[ \t]+", "", re.sub(regex, replace_str, matchstring)
-    )
+    return re.sub("^[ \t]+", "", re.sub(regex, replace_str, matchstring))
