@@ -82,6 +82,15 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         default=None,
         help="Replace text found in place with supplied",
     )
+    parser.add_argument(
+        "-D",
+        "--depth",
+        type=int,
+        default=None,
+        required=False,
+        help="Directory depth to search in",
+    )
+
     if manual_args is not None:
         args = parser.parse_args(args=manual_args)
     else:

@@ -64,7 +64,7 @@ def start_search(args: argparse.Namespace):
     indexer = mp.Process(
         name="indexer",
         target=index_worker,
-        args=(args.directories, ignore_re, numworkers, search_queue, output),
+        args=(args.directories, ignore_re, numworkers, search_queue, output, args.depth),
     )
     indexer.start()
     processes.append(indexer)
@@ -89,10 +89,14 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: List[str], ignore_re: RETYPE, workers: int, search_queue: mp.Queue, output: mp.Queue, block=False
+    directories: List[str], ignore_re: RETYPE, workers: int, search_queue: mp.Queue, output: mp.Queue, depth: int, block=False
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
-        for subdir, _, files in os.walk(dir):
+        for subdir, folders, files in os.walk(dir):
+            # if depth exceeds the required depth, do not walk deeper
+            if depth is not None and subdir.count(os.sep) >= depth:
+                del folders[:]
+
             for question_file in files:
                 # we don't want to block, this process should be fastest
                 search_queue.put(
