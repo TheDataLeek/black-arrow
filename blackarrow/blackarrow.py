@@ -64,7 +64,14 @@ def start_search(args: argparse.Namespace):
     indexer = mp.Process(
         name="indexer",
         target=index_worker,
-        args=(args.directories, ignore_re, filename_re, numworkers, search_queue, output, args.depth),
+        args=(
+            args.directories,
+            ignore_re,
+            filename_re,
+            numworkers,
+            search_queue,
+            args.depth,
+        ),
     )
     indexer.start()
     processes.append(indexer)
@@ -73,7 +80,7 @@ def start_search(args: argparse.Namespace):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
-            args=(search_re, ignore_re, filename_re, args.replace, search_queue, output),
+            args=(search_re, args.replace, search_queue, output),
         )
         worker.start()
         processes.append(worker)
@@ -89,7 +96,13 @@ def start_search(args: argparse.Namespace):
 
 
 def index_worker(
-    directories: List[str], ignore_re: RETYPE, filename_re: RETYPE, workers: int, search_queue: mp.Queue, output: mp.Queue, depth: int, block=False
+    directories: List[str],
+    ignore_re: RETYPE,
+    filename_re: RETYPE,
+    workers: int,
+    search_queue: mp.Queue,
+    depth: int,
+    block=False,
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, folders, files in os.walk(dir):
@@ -98,8 +111,8 @@ def index_worker(
                 del folders[:]
 
             for question_file in files:
-                should_we_search = (filename_re.search(question_file) is not None)
-                do_we_ignore = (ignore_re.search(question_file) is None)
+                should_we_search = filename_re.search(question_file) is not None
+                do_we_ignore = ignore_re.search(question_file) is None
                 if should_we_search and do_we_ignore:
                     # we don't want to block, this process should be fastest
                     search_queue.put(
@@ -110,12 +123,7 @@ def index_worker(
 
 
 def file_searching_worker(
-    regex: RETYPE,
-    ignore_re: RETYPE,
-    filename_re: RETYPE,
-    replace: Union[str, None],
-    search_queue: mp.Queue,
-    output: mp.Queue,
+    regex: RETYPE, replace: Union[str, None], search_queue: mp.Queue, output: mp.Queue
 ) -> None:
     line_count = 0
     file_count = 0
@@ -215,9 +223,7 @@ def print_worker(
                 "Files Matched: {:,}\n"
                 "Lines Searched: {:,}\n"
                 "Duration: {:.3f}"
-            ).format(
-                file_count, found_count, line_count, time.time() - start_time
-            )
+            ).format(file_count, found_count, line_count, time.time() - start_time)
         )
 
     if editmode:
@@ -246,6 +252,4 @@ def insert_colour(matchstring: str, regex: RETYPE, extra_str=None) -> str:
         replace_str = str(color.fg256("yellow", r"\g<0>"))
     else:
         replace_str = str(color.fg256("yellow", r"(\g<0> -> {})".format(extra_str)))
-    return re.sub(
-        "^[ \t]+", "", re.sub(regex, replace_str, matchstring)
-    )
+    return re.sub("^[ \t]+", "", re.sub(regex, replace_str, matchstring))
