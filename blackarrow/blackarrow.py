@@ -94,7 +94,7 @@ def index_worker(
     for dir in list(set(directories)):  # no duplicates
         for subdir, folders, files in os.walk(dir):
             # if depth exceeds the required depth, do not walk deeper
-            if depth and subdir.count(os.sep) >= depth:
+            if depth is not None and subdir.count(os.sep) >= depth:
                 del folders[:]
 
             for question_file in files:
