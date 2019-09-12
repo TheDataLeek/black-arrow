@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as readmefobj:
 
 setup(
     name='blackarrow',
-    version='1.0.7',
+    version='1.0.8',
     description='A fast keyword searcher',
     long_description=long_desc,
     long_description_content_type='text/markdown',
