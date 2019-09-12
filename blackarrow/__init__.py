@@ -1,5 +1,3 @@
-import os
-import re
 import argparse
 from typing import Optional
 
@@ -9,9 +7,16 @@ from . import blackarrow as ba
 def main():
     args = get_args()
     processes, final_queue = ba.start_search(args)
-    print_process = processes[-1]
     try:
-        print_process.join()  # Wait main thread until printer is done
+        # This doesn't work as it is hanging on that queue for memory safety
+        # print_process.join()  # Wait main thread until printer is done
+
+        # need to instead listen to that queue and treat it as poison - like the others
+        while True:
+            poison = final_queue.get()
+            if poison == 'EXIT':
+                break
+
     except (KeyboardInterrupt, EOFError):  # kill all on ctrl+c/d
         [p.terminate() for p in processes]
 
@@ -89,6 +94,12 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         default=None,
         required=False,
         help="Directory depth to search in",
+    )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        default=False,
+        help=("Run in development mode (NO OUTPUT)"),
     )
 
     if manual_args is not None:

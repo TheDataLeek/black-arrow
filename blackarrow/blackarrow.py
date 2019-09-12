@@ -21,12 +21,16 @@ RETYPE = type(
     re.compile("a")
 )  # since re module apparently doesn't have good compiled types
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
+DEVMODE = False
 
 
 def start_search(args: argparse.Namespace):
     """
     This function is separated out in order to use code as module
     """
+    global DEVMODE
+    DEVMODE = args.dev
+
     start_time = time.time()
 
     args.ignore = args.ignore + ["build", "\.min\.js", ".git"]
@@ -80,7 +84,7 @@ def start_search(args: argparse.Namespace):
         worker = mp.Process(
             name="worker-{}".format(i + 1),
             target=file_searching_worker,
-            args=(search_re, args.replace, search_queue, output),
+            args=(i, search_re, args.replace, search_queue, output),
         )
         worker.start()
         processes.append(worker)
@@ -123,7 +127,7 @@ def index_worker(
 
 
 def file_searching_worker(
-    regex: RETYPE, replace: Union[str, None], search_queue: mp.Queue, output: mp.Queue
+    worker_num: int, regex: RETYPE, replace: Union[str, None], search_queue: mp.Queue, output: mp.Queue
 ) -> None:
     line_count = 0
     file_count = 0
@@ -136,7 +140,7 @@ def file_searching_worker(
         # we want to block this thread until we get search_queue
         name = search_queue.get()
         if name == "EXIT":
-            output.put(("EXIT", line_count, file_count, found_count))
+            output.put(("EXIT" + str(worker_num), line_count, file_count, found_count))
             break
 
         file_count += 1
@@ -185,11 +189,16 @@ def print_worker(
     file_list = []
     while True:
         statement = output.get()
-        if statement[0] == "EXIT":
+        if statement[0][:4] == "EXIT":
             exit_count += 1
             line_count += statement[1]
             file_count += statement[2]
             found_count += statement[3]
+
+            if DEVMODE:
+                print(statement[0])
+                print(exit_count, worker_count)
+
             if exit_count == worker_count:
                 break
 
@@ -199,19 +208,20 @@ def print_worker(
                 replace = None
             else:
                 filename, linenum, matched, line, replace = statement
-            final_queue.put(filename, linenum)
-            if pipemode:
-                print("{}	{}	{}".format(filename, linenum, matched))
-            else:
-                print(
-                    "{}:{}\n\t{}".format(
-                        filename,
-                        color.fg256("#00ff00", linenum),
-                        insert_colour(matched, line, extra_str=replace),
+            # final_queue.put(filename, linenum)
+            if not DEVMODE:
+                if pipemode:
+                    print("{}	{}	{}".format(filename, linenum, matched))
+                else:
+                    print(
+                        "{}:{}\n\t{}".format(
+                            filename,
+                            color.fg256("#00ff00", linenum),
+                            insert_colour(matched, line, extra_str=replace),
+                        )
                     )
-                )
 
-                file_list.append((statement[1], statement[0]))
+                    file_list.append((statement[1], statement[0]))
 
     final_queue.put("EXIT")
 
