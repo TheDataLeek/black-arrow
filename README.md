@@ -13,6 +13,10 @@ combinations of bash commands.
 
 That out of the way, let's talk about what this *actually does*...
 
+![png](./img/demo.png)
+
+![png](./img/demo2.png)
+
 ## Installation
 
 ```
