@@ -1,4 +1,4 @@
 [
-  "blackarrow/test/test_indexing.py::test_not_empty",
-  "blackarrow/test/test_indexing.py::test_correct_results"
+  "blackarrow/test/test_indexing.py::test_correct_results",
+  "blackarrow/test/test_indexing.py::test_not_empty"
 ]
