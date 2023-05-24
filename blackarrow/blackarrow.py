@@ -61,7 +61,7 @@ def start_search(args: argparse.Namespace):
         numworkers = args.workers or 6
 
     mp.set_start_method('fork')
-    
+
     search_queue = mp.Queue()
     output = mp.Queue()
     final_queue = mp.Queue()  # Use final queue for external output
