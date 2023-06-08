@@ -62,9 +62,9 @@ def start_search(args: argparse.Namespace):
 
     mp.set_start_method('fork')
 
-    search_queue = mp.Queue()
-    output = mp.Queue()
-    final_queue = mp.Queue()  # Use final queue for external output
+    search_queue = mp.Queue(0)
+    output = mp.Queue(0)
+    final_queue = mp.Queue(0)  # Use final queue for external output
     processes = []
 
     indexer = mp.Process(
