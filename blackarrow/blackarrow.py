@@ -24,7 +24,7 @@ RETYPE = type(
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
 DEVMODE = False
 QUEUE_SIZE = 5_000_000
-WORKER_CHUNK_SIZE = 1_000
+WORKER_CHUNK_SIZE = 10_000
 PRINT_CHUNK_SIZE = 100
 
 
