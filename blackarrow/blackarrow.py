@@ -23,7 +23,7 @@ RETYPE = type(
 )  # since re module apparently doesn't have good compiled types
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
 DEVMODE = False
-QUEUE_SIZE = 1_000_000_000_000
+QUEUE_SIZE = 5_000_000
 
 
 def start_search(args: argparse.Namespace):
