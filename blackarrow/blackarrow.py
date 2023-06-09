@@ -23,7 +23,7 @@ RETYPE = type(
 )  # since re module apparently doesn't have good compiled types
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
 DEVMODE = False
-QUEUE_SIZE = 1_000_000_000
+QUEUE_SIZE = 1_000_000_000_000
 
 
 def start_search(args: argparse.Namespace):
@@ -124,7 +124,7 @@ def index_worker(
                 if should_we_search and do_we_ignore:
                     # we don't want to block, this process should be fastest
                     search_queue.put(
-                        subdir + "/" + question_file, block=block, timeout=10
+                        subdir + "/" + question_file, block=True, timeout=10
                     )  # faster than os.path.join
     for i in range(workers):
         search_queue.put("EXIT")  # poison pill workers
