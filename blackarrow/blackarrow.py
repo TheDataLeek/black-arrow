@@ -110,7 +110,6 @@ def index_worker(
     workers: int,
     search_queue: Queue,
     depth: int,
-    block=False,
 ) -> None:
     for dir in list(set(directories)):  # no duplicates
         for subdir, folders, files in os.walk(dir):
@@ -140,7 +139,7 @@ def file_searching_worker(
     maxwidth = int(3 * int(columns) / 4)
     while True:
         # we want to block this thread until we get search_queue
-        name = search_queue.get()
+        name = search_queue.get(block=True)
         if name == "EXIT":
             output.put(("EXIT" + str(worker_num), line_count, file_count, found_count))
             break
@@ -190,7 +189,7 @@ def print_worker(
     line_count = 0
     file_list = []
     while True:
-        statement = output.get()
+        statement = output.get(block=True)
         if statement[0][:4] == "EXIT":
             exit_count += 1
             line_count += statement[1]
