@@ -118,14 +118,12 @@ def index_worker(
             if depth is not None and subdir.count(os.sep) >= depth:
                 del folders[:]
 
-            for question_file in files:
-                should_we_search = filename_re.search(question_file) is not None
-                do_we_ignore = ignore_re.search(question_file) is None
-                if should_we_search and do_we_ignore:
-                    # we don't want to block, this process should be fastest
-                    search_queue.put(
-                        subdir + "/" + question_file, block=True, timeout=10
-                    )  # faster than os.path.join
+            search_queue.put_many([
+                subdir + "/" + question_file # faster than os.path.join
+                for question_file in files
+                if (filename_re.search(question_file) is not None)  # should we search?
+                and (ignore_re.search(question_file) is None)    # do we ignore?
+            ])
     for i in range(workers):
         search_queue.put("EXIT")  # poison pill workers
 
