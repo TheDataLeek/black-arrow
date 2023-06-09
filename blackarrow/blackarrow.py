@@ -13,6 +13,7 @@ import multiprocessing as mp
 import time
 import subprocess
 import fabulous.color as color
+from faster_fifo import Queue
 
 from typing import List, Union
 
@@ -22,6 +23,7 @@ RETYPE = type(
 )  # since re module apparently doesn't have good compiled types
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
 DEVMODE = False
+QUEUE_SIZE = 1_000_000_000
 
 
 def start_search(args: argparse.Namespace):
@@ -62,9 +64,9 @@ def start_search(args: argparse.Namespace):
 
     mp.set_start_method('fork')
 
-    search_queue = mp.Queue(0)
-    output = mp.Queue(0)
-    final_queue = mp.Queue(0)  # Use final queue for external output
+    search_queue = Queue(QUEUE_SIZE)
+    output = Queue(QUEUE_SIZE)
+    final_queue = Queue(QUEUE_SIZE)  # Use final queue for external output
     processes = []
 
     indexer = mp.Process(
@@ -106,7 +108,7 @@ def index_worker(
     ignore_re: RETYPE,
     filename_re: RETYPE,
     workers: int,
-    search_queue: mp.Queue,
+    search_queue: Queue,
     depth: int,
     block=False,
 ) -> None:
@@ -122,14 +124,14 @@ def index_worker(
                 if should_we_search and do_we_ignore:
                     # we don't want to block, this process should be fastest
                     search_queue.put(
-                        subdir + "/" + question_file, block=True, timeout=10
+                        subdir + "/" + question_file, block=block, timeout=10
                     )  # faster than os.path.join
     for i in range(workers):
         search_queue.put("EXIT")  # poison pill workers
 
 
 def file_searching_worker(
-    worker_num: int, regex: RETYPE, replace: Union[str, None], search_queue: mp.Queue, output: mp.Queue
+    worker_num: int, regex: RETYPE, replace: Union[str, None], search_queue: Queue, output: Queue
 ) -> None:
     line_count = 0
     file_count = 0
@@ -179,8 +181,8 @@ def file_searching_worker(
 def print_worker(
     start_time: float,
     worker_count: int,
-    output: mp.Queue,
-    final_queue: mp.Queue,
+    output: Queue,
+    final_queue: Queue,
     pipemode: bool,
     editmode: bool,
 ) -> None:
