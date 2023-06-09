@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "blackarrow"
-version = "1.1.7"
+version = "1.1.8"
 description = "A fast keyword searcher"
 authors = ["Zoe Farmer <zoe@dataleek.io>"]
 license = "MIT"

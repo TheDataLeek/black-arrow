@@ -13,7 +13,7 @@ def main():
 
         # need to instead listen to that queue and treat it as poison - like the others
         while True:
-            poison = final_queue.get(block=True)
+            poison = final_queue.get(block=True, timeout=500)
             if poison == 'EXIT':
                 break
 

@@ -189,7 +189,7 @@ def print_worker(
     line_count = 0
     file_list = []
     while True:
-        statement = output.get(block=True)
+        statement = output.get(block=True, timeout=360)
         if statement[0][:4] == "EXIT":
             exit_count += 1
             line_count += statement[1]
