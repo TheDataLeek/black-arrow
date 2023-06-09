@@ -24,6 +24,8 @@ RETYPE = type(
 EDITOR = os.environ.get("EDITOR", "nvim")  # Default editor
 DEVMODE = False
 QUEUE_SIZE = 5_000_000
+WORKER_CHUNK_SIZE = 1_000
+PRINT_CHUNK_SIZE = 100
 
 
 def start_search(args: argparse.Namespace):
@@ -123,8 +125,8 @@ def index_worker(
                 if (filename_re.search(question_file) is not None)  # should we search?
                 and (ignore_re.search(question_file) is None)    # do we ignore?
             ])
-    for i in range(workers):
-        search_queue.put("EXIT")  # poison pill workers
+    # for i in range(workers):
+    search_queue.put("EXIT")  # poison pill workers
 
 
 def file_searching_worker(
@@ -139,40 +141,42 @@ def file_searching_worker(
     maxwidth = int(3 * int(columns) / 4)
     while True:
         # we want to block this thread until we get search_queue
-        name = search_queue.get(block=True)
-        if name == "EXIT":
-            output.put(("EXIT" + str(worker_num), line_count, file_count, found_count))
-            break
+        names = search_queue.get_many(block=True, max_messages_to_get=WORKER_CHUNK_SIZE, timeout=10)
+        for name in names:
+            if name == "EXIT":
+                output.put(("EXIT" + str(worker_num), line_count, file_count, found_count))
+                search_queue.put("EXIT")
+                return
 
-        file_count += 1
-        try:
-            new_text = None
-            with open(name, "r") as ofile:
-                flag = []
-                i = 1
-                for line in ofile:
-                    if regex.search(line):
-                        found_string = line.split("\n")[0]
-                        if len(found_string) > maxwidth:
-                            found_string = found_string[:maxwidth] + "..."
-                        flag.append((i, found_string))
-                    i += 1
-                line_count += i
-                if flag:
-                    found_count += 1
-                    for value in flag:
-                        if replace is not None:
-                            output.put((name, value[0], value[1], regex, replace))
-                        else:
-                            output.put((name, value[0], value[1], regex))
+            file_count += 1
+            try:
+                new_text = None
+                with open(name, "r") as ofile:
+                    flag = []
+                    i = 1
+                    for line in ofile:
+                        if regex.search(line):
+                            found_string = line.split("\n")[0]
+                            if len(found_string) > maxwidth:
+                                found_string = found_string[:maxwidth] + "..."
+                            flag.append((i, found_string))
+                        i += 1
+                    line_count += i
+                    if flag:
+                        found_count += 1
+                        for value in flag:
+                            if replace is not None:
+                                output.put((name, value[0], value[1], regex, replace))
+                            else:
+                                output.put((name, value[0], value[1], regex))
+                    if replace is not None:
+                        ofile.seek(0)  # reset to beginning
+                        new_text = regex.subn(replace, ofile.read())[0]
                 if replace is not None:
-                    ofile.seek(0)  # reset to beginning
-                    new_text = regex.subn(replace, ofile.read())[0]
-            if replace is not None:
-                with open(name, "w") as ofile:
-                    ofile.write(new_text)
-        except:
-            pass
+                    with open(name, "w") as ofile:
+                        ofile.write(new_text)
+            except:
+                pass
 
 
 def print_worker(
@@ -188,41 +192,45 @@ def print_worker(
     exit_count = 0
     line_count = 0
     file_list = []
+    death_flag = False
     while True:
-        statement = output.get(block=True, timeout=360)
-        if statement[0][:4] == "EXIT":
-            exit_count += 1
-            line_count += statement[1]
-            file_count += statement[2]
-            found_count += statement[3]
+        if death_flag:
+            break
+        all_statements = output.get_many(block=True, timeout=60, max_messages_to_get=PRINT_CHUNK_SIZE)
+        for statement in all_statements:
+            if statement[0][:4] == "EXIT":
+                exit_count += 1
+                line_count += statement[1]
+                file_count += statement[2]
+                found_count += statement[3]
 
-            if DEVMODE:
-                print(statement[0])
-                print(exit_count, worker_count)
+                if DEVMODE:
+                    print(statement[0])
+                    print(exit_count, worker_count)
 
-            if exit_count == worker_count:
-                break
+                if exit_count == worker_count:
+                    death_flag = True
 
-        else:
-            if len(statement) == 4:
-                filename, linenum, matched, line = statement
-                replace = None
             else:
-                filename, linenum, matched, line, replace = statement
-            # final_queue.put(filename, linenum)
-            if not DEVMODE:
-                if pipemode:
-                    print("{}	{}	{}".format(filename, linenum, matched))
+                if len(statement) == 4:
+                    filename, linenum, matched, line = statement
+                    replace = None
                 else:
-                    print(
-                        "{}:{}\n\t{}".format(
-                            filename,
-                            color.fg256("#00ff00", linenum),
-                            insert_colour(matched, line, extra_str=replace),
+                    filename, linenum, matched, line, replace = statement
+                # final_queue.put(filename, linenum)
+                if not DEVMODE:
+                    if pipemode:
+                        print("{}	{}	{}".format(filename, linenum, matched))
+                    else:
+                        print(
+                            "{}:{}\n\t{}".format(
+                                filename,
+                                color.fg256("#00ff00", linenum),
+                                insert_colour(matched, line, extra_str=replace),
+                            )
                         )
-                    )
 
-                    file_list.append((statement[1], statement[0]))
+                        file_list.append((statement[1], statement[0]))
 
     final_queue.put("EXIT")
 
