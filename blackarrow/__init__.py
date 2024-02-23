@@ -71,6 +71,13 @@ def get_args(manual_args: Optional[str] = None) -> argparse.Namespace:
         help=('Run in "pipe" mode with brief output'),
     )
     parser.add_argument(
+        "-m",
+        "--match-only",
+        action="store_true",
+        default=False,
+        help=('Only return the matched strings. Default FALSE'),
+    )
+    parser.add_argument(
         "-e", "--edit", action="store_true", default=False, help=("Edit the files?")
     )
     parser.add_argument(

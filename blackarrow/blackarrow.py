@@ -88,7 +88,7 @@ def start_search(args: argparse.Namespace):
 
     for i in range(numworkers):
         worker = mp.Process(
-            name="worker-{}".format(i + 1),
+            name=f"worker-{i + 1}",
             target=file_searching_worker,
             args=(i, search_re, args.replace, search_queue, output),
         )
@@ -97,7 +97,7 @@ def start_search(args: argparse.Namespace):
     printer = mp.Process(
         name="printer",
         target=print_worker,
-        args=(start_time, numworkers, output, final_queue, args.pipe, args.edit),
+        args=(start_time, numworkers, output, final_queue, args.pipe, args.edit, args.match_only),
     )
     printer.start()
     processes.append(printer)
@@ -135,10 +135,6 @@ def file_searching_worker(
     line_count = 0
     file_count = 0
     found_count = 0
-    # https://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
-    rows, columns = os.popen("stty size", "r").read().split()
-    # Max width of printed line is 3/4 column count
-    maxwidth = int(3 * int(columns) / 4)
     while True:
         # we want to block this thread until we get search_queue
         names = search_queue.get_many(block=True, max_messages_to_get=WORKER_CHUNK_SIZE, timeout=10)
@@ -152,23 +148,20 @@ def file_searching_worker(
             try:
                 new_text = None
                 with open(name, "r") as ofile:
-                    flag = []
+                    matched_lines = []
                     i = 1
                     for line in ofile:
-                        if regex.search(line):
-                            found_string = line.split("\n")[0]
-                            if len(found_string) > maxwidth:
-                                found_string = found_string[:maxwidth] + "..."
-                            flag.append((i, found_string))
+                        match = regex.search(line)
+                        if match:
+                            matched_lines.append((i, line.strip(), match.group(0)))
                         i += 1
                     line_count += i
-                    if flag:
-                        found_count += 1
-                        for value in flag:
-                            if replace is not None:
-                                output.put((name, value[0], value[1], regex, replace))
-                            else:
-                                output.put((name, value[0], value[1], regex))
+                    found_count += len(matched_lines)
+                    for value in matched_lines:
+                        if replace is not None:
+                            output.put((name, *value, regex, replace))
+                        else:
+                            output.put((name, *value, regex))
                     if replace is not None:
                         ofile.seek(0)  # reset to beginning
                         new_text = regex.subn(replace, ofile.read())[0]
@@ -186,6 +179,7 @@ def print_worker(
     final_queue: Queue,
     pipemode: bool,
     editmode: bool,
+    match_only: bool,
 ) -> None:
     file_count = 0
     found_count = 0
@@ -193,6 +187,10 @@ def print_worker(
     line_count = 0
     file_list = []
     death_flag = False
+    # https://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
+    rows, columns = os.popen("stty size", "r").read().split()
+    # Max width of printed line is 3/4 column count
+    maxwidth = int(3 * int(columns) / 4)
     while True:
         if death_flag:
             break
@@ -212,41 +210,47 @@ def print_worker(
                     death_flag = True
 
             else:
-                if len(statement) == 4:
-                    filename, linenum, matched, line = statement
+                if len(statement) == 5:
+                    filename, linenum, matched_line, matched, regex = statement
                     replace = None
                 else:
-                    filename, linenum, matched, line, replace = statement
-                # final_queue.put(filename, linenum)
+                    filename, linenum, matched_line, matched, regex, replace = statement
+
                 if not DEVMODE:
+                    all_groups = []
+                    for match in regex.finditer(matched_line):
+                        all_groups += list(match.groups())
+                    all_groups = ','.join(all_groups)
                     if pipemode:
-                        print("{}	{}	{}".format(filename, linenum, matched))
+                        line_to_print = f"{filename}|{linenum}|{matched}|{matched_line}|{all_groups}"
                     else:
-                        print(
-                            "{}:{}\n\t{}".format(
-                                filename,
-                                color.fg256("#00ff00", linenum),
-                                insert_colour(matched, line, extra_str=replace),
-                            )
+                        if len(matched_line) > maxwidth:
+                            matched_line = matched_line[:maxwidth] + "..."
+                        if all_groups:
+                            matched += f'\n\t[{all_groups}]'
+                        line_to_print = (
+                            f"{filename}:{color.fg256('#00ff00', linenum)}"
+                            f"\n\t{insert_colour(matched_line, regex, extra_str=replace)}"
                         )
 
                         file_list.append((statement[1], statement[0]))
 
+                    print(line_to_print)
+
     final_queue.put("EXIT")
 
     if not pipemode:
+        runtime = time.time() - start_time
         print(
-            (
                 "---------------\n"
-                "Files Searched: {:,}\n"
-                "Files Matched: {:,}\n"
-                "Lines Searched: {:,}\n"
-                "Duration: {:.3f}"
-            ).format(file_count, found_count, line_count, time.time() - start_time)
+                f"Files Searched: {file_count:,}\n"
+                f"Files Matched: {found_count:,}\n"
+                f"Lines Searched: {line_count:,}\n"
+                f"Duration: {runtime:.3f}"
         )
 
     if editmode:
-        files_to_edit = ["+{} {}".format(num, name) for num, name in file_list]
+        files_to_edit = [f"+{num} {name}" for num, name in file_list]
         call_args = [_ for _ in files_to_edit[0].split(" ")]
         orientation = 0
         for f in files_to_edit[1:]:
