@@ -219,7 +219,7 @@ def print_worker(
                 if not DEVMODE:
                     all_groups = []
                     for match in regex.finditer(matched_line):
-                        all_groups += [g for g in match.groups() if g]
+                        all_groups += [str(g) for g in match.groups() if g]
                     all_groups = ','.join(all_groups)
                     if pipemode:
                         line_to_print = f"{filename}|{linenum}|{matched}|{matched_line}|{all_groups}"
